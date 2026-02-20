@@ -12,11 +12,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ab90f4ddd80c4900a78f5383340151c, type: 3}
   m_Name: Level1
   m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeLevelPreset
-  gridWidth: 32
-  gridHeight: 32
+  gridWidth: 33
+  gridHeight: 33
   initialLiveCells:
-  - {x: 0, y: 30}
-  - {x: 1, y: 29}
-  - {x: 2, y: 29}
-  - {x: 2, y: 30}
+  - {x: 2, y: 2}
+  - {x: 2, y: 1}
+  - {x: 2, y: 0}
+  - {x: 1, y: 2}
+  - {x: 0, y: 1}
+  - {x: 30, y: 32}
+  - {x: 30, y: 31}
+  - {x: 30, y: 30}
+  - {x: 31, y: 30}
+  - {x: 32, y: 31}
+  - {x: 30, y: 2}
+  - {x: 30, y: 0}
+  - {x: 30, y: 1}
+  - {x: 31, y: 2}
+  - {x: 32, y: 1}
+  - {x: 14, y: 16}
+  - {x: 13, y: 16}
+  - {x: 19, y: 16}
+  - {x: 20, y: 16}
+  - {x: 2, y: 32}
   - {x: 2, y: 31}
+  - {x: 2, y: 30}
+  - {x: 1, y: 30}
+  - {x: 0, y: 31}
+  - {x: 16, y: 18}
+  - {x: 16, y: 19}
+  - {x: 16, y: 20}
+  - {x: 12, y: 16}
+  - {x: 18, y: 16}
+  - {x: 16, y: 14}
+  - {x: 16, y: 13}
+  - {x: 16, y: 12}

@@ -148,8 +148,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f778396e19185475d9cbbc7c02b20e65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeSimulation
-  levelPreset: {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
-  cellSize: 0.31
+  levelPreset: {fileID: 11400000, guid: f84d975427de14f6fa578b750586670a, type: 2}
+  cellSize: 0.3
   centerGridOnLoad: 0
   gridOrigin: {x: -5, y: -4.8}
   stepInterval: 0.4
@@ -382,7 +382,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelManager
   simulation: {fileID: 428639211}
   levels:
-  - {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
+  - {fileID: 11400000, guid: f84d975427de14f6fa578b750586670a, type: 2}
   currentLevelIndex: 0
 --- !u!4 &1803707863
 Transform:
