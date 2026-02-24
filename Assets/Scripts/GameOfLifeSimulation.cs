@@ -13,8 +13,8 @@ public class GameOfLifeSimulation : MonoBehaviour
     [SerializeField] private GameOfLifeLevelPreset levelPreset;
 
     [Header("Grid layout")]
-    [Tooltip("World size of one cell (square). With ortho size 5, use ~0.5 so the grid fills the camera (e.g. 20x20 = 10 units).")]
-    [SerializeField] private float cellSize = 0.5f;
+    [Tooltip("Total world-space width/height the grid should span. Cell size is computed automatically from this and the level's dimensions.")]
+    [SerializeField] private float targetGridWorldSize = 10f;
 
     [Tooltip("If true, grid is centered at world (0,0) when loading a level. Otherwise uses Grid Origin.")]
     [SerializeField] private bool centerGridOnLoad = true;
@@ -38,6 +38,7 @@ public class GameOfLifeSimulation : MonoBehaviour
     [SerializeField] private CursorController cursorController;
 
     // State
+    private float cellSize = 0.5f;
     private int _width;
     private int _height;
     private bool[,] _current;
@@ -209,8 +210,10 @@ public class GameOfLifeSimulation : MonoBehaviour
 
     /// <summary>
     /// Load or switch to a level preset. Rebuilds the grid and resets the simulation.
+    /// If startBlack is true, the newly built grid is rendered fully black so that
+    /// a reveal transition can be performed afterwards.
     /// </summary>
-    public void LoadLevel(GameOfLifeLevelPreset preset)
+    public void LoadLevel(GameOfLifeLevelPreset preset, bool startBlack = false)
     {
         if (preset == null) return;
 
@@ -220,6 +223,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         StepInterval = _baseStepInterval;
         _width = preset.gridWidth;
         _height = preset.gridHeight;
+        cellSize = targetGridWorldSize / Mathf.Max(_width, _height);
         _current = new bool[_width, _height];
         _next = new bool[_width, _height];
 
@@ -235,6 +239,24 @@ public class GameOfLifeSimulation : MonoBehaviour
         BuildCellViews();
         SpawnCollectibles(preset);
         PositionCursorStart(preset);
+        FitCameraToGrid();
+
+        if (startBlack && _cells != null)
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetColorOnly(Color.black);
+                }
+            }
+
+            // Hide collectibles until the new level finishes revealing.
+            SetCollectiblesVisible(false);
+        }
+
         _stepTimer = stepInterval;
         _initialized = true;
         _running = false;
@@ -391,26 +413,16 @@ public class GameOfLifeSimulation : MonoBehaviour
 
         if (_levelManager != null)
         {
-            _levelManager.LoadNextLevel();
+            // Load the next level with its grid already built but rendered black,
+            // so the reveal below uses the correct new dimensions.
+            _levelManager.LoadNextLevel(true);
             // Wait a frame so the new level can finish loading/building its grid.
             yield return null;
         }
 
-        // Now reveal the NEW level: start fully black, then wipe back to life from bottom to top.
+        // Now reveal the NEW level from black, bottom to top, using the new grid size.
         if (_cells != null)
         {
-            // First force all cells to black so we reveal from black -> alive/dead.
-            for (int y = 0; y < _height; y++)
-            {
-                for (int x = 0; x < _width; x++)
-                {
-                    var cellView = _cells[x, y];
-                    if (cellView != null)
-                        cellView.SetColorOnly(Color.black);
-                }
-            }
-
-            // Then fade back to alive/dead colors from bottom to top on the new level.
             for (int y = 0; y < _height; y++)
             {
                 for (int x = 0; x < _width; x++)
@@ -465,7 +477,8 @@ public class GameOfLifeSimulation : MonoBehaviour
         if (_levelManager != null)
         {
             int index = _levelManager.CurrentLevelIndex;
-            _levelManager.LoadLevelByIndex(index);
+            // Reload the same level, with its new grid size (if edited) built black.
+            _levelManager.LoadLevelByIndex(index, true);
             // Wait a frame so the new level can finish loading/building its grid.
             yield return null;
         }
@@ -473,16 +486,6 @@ public class GameOfLifeSimulation : MonoBehaviour
         // Reveal the reloaded level from black, bottom to top.
         if (_cells != null)
         {
-            for (int y = 0; y < _height; y++)
-            {
-                for (int x = 0; x < _width; x++)
-                {
-                    var cellView = _cells[x, y];
-                    if (cellView != null)
-                        cellView.SetColorOnly(Color.black);
-                }
-            }
-
             for (int y = 0; y < _height; y++)
             {
                 for (int x = 0; x < _width; x++)
@@ -514,6 +517,36 @@ public class GameOfLifeSimulation : MonoBehaviour
 
         Vector2 worldPos = CellToWorld(cell.x, cell.y);
         cursorController.PlaceAtStart(worldPos);
+    }
+
+    /// <summary>
+    /// Adjust the main orthographic camera so the entire grid fits on screen
+    /// regardless of level dimensions (e.g. 20x20, 33x33, 42x42, etc.).
+    /// </summary>
+    private void FitCameraToGrid()
+    {
+        var cam = Camera.main;
+        if (cam == null || !cam.orthographic) return;
+
+        // World-space size of the grid.
+        float gridWorldWidth = _width * cellSize;
+        float gridWorldHeight = _height * cellSize;
+
+        // Bottom-left corner and center of the grid in world space.
+        Vector2 min = gridOrigin;
+        Vector2 center = min + new Vector2(gridWorldWidth * 0.5f, gridWorldHeight * 0.5f);
+
+        // Center the camera on the grid while preserving its Z.
+        Vector3 camPos = cam.transform.position;
+        cam.transform.position = new Vector3(center.x, center.y, camPos.z);
+
+        // Compute the orthographic size needed to fit width & height, with padding.
+        float aspect = (float)Screen.width / Screen.height;
+        float sizeByHeight = gridWorldHeight * 0.5f;
+        float sizeByWidth = gridWorldWidth * 0.5f / Mathf.Max(aspect, 0.0001f);
+
+        const float paddingFactor = 1.05f;
+        cam.orthographicSize = Mathf.Max(sizeByHeight, sizeByWidth) * paddingFactor;
     }
 
     private static Sprite _sharedSprite;

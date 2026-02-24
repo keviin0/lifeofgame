@@ -149,7 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeSimulation
   levelPreset: {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
-  cellSize: 0.3
+  targetGridWorldSize: 10
   centerGridOnLoad: 0
   gridOrigin: {x: -5, y: -4.8}
   stepInterval: 0.4
@@ -973,9 +973,9 @@ PolygonCollider2D:
   m_AutoTiling: 0
   m_Points:
     m_Paths:
-    - - {x: 0, y: 0.5773587}
-      - {x: -0.5, y: -0.28866667}
-      - {x: 0.5, y: -0.28866667}
+    - - {x: 0, y: 0.5}
+      - {x: -0.4, y: -0.25}
+      - {x: 0.4, y: -0.25}
   m_UseDelaunayMesh: 1
 --- !u!114 &1734065362
 MonoBehaviour:
@@ -1022,9 +1022,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelManager
   simulation: {fileID: 428639211}
   levels:
+  - {fileID: 11400000, guid: d7897cbc29a0d4f3eaf4e6b457e9db18, type: 2}
   - {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
   - {fileID: 11400000, guid: f84d975427de14f6fa578b750586670a, type: 2}
   - {fileID: 11400000, guid: 7aa959f0b6784734bb2570f6a462face, type: 2}
+  - {fileID: 11400000, guid: 6640e9e4f25460148a6ac1057bea6c76, type: 2}
+  - {fileID: 11400000, guid: 57820851b61844d24a276cb6c6648ab8, type: 2}
   currentLevelIndex: 0
 --- !u!4 &1803707863
 Transform:
