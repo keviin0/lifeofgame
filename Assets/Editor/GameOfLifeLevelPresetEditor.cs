@@ -10,6 +10,15 @@ public class GameOfLifeLevelPresetEditor : Editor
     bool _dragPaintAlive;
     int _lastPaintX = -1, _lastPaintY = -1;
 
+    enum CellPaintMode
+    {
+        LiveCell,
+        CollectibleCell,
+        CursorStart
+    }
+
+    static CellPaintMode _paintMode = CellPaintMode.LiveCell;
+
     public override void OnInspectorGUI()
     {
         SerializedObject so = serializedObject;
@@ -17,7 +26,9 @@ public class GameOfLifeLevelPresetEditor : Editor
 
         SerializedProperty widthProp = so.FindProperty("gridWidth");
         SerializedProperty heightProp = so.FindProperty("gridHeight");
-        SerializedProperty listProp = so.FindProperty("initialLiveCells");
+        SerializedProperty liveListProp = so.FindProperty("initialLiveCells");
+        SerializedProperty collectibleListProp = so.FindProperty("collectibleCells");
+        SerializedProperty cursorStartListProp = so.FindProperty("cursorStartCells");
 
         EditorGUILayout.PropertyField(widthProp);
         EditorGUILayout.PropertyField(heightProp);
@@ -26,14 +37,18 @@ public class GameOfLifeLevelPresetEditor : Editor
 
         if (GUILayout.Button("Reset board (clear all cells)"))
         {
-            listProp.arraySize = 0;
+            liveListProp.arraySize = 0;
+            collectibleListProp.arraySize = 0;
+            cursorStartListProp.arraySize = 0;
             _lastPaintX = _lastPaintY = -1;
         }
 
         int w = widthProp.intValue;
         int h = heightProp.intValue;
 
-        bool[,] live = BuildLiveGrid(listProp, w, h);
+        bool[,] live = BuildGridFromList(liveListProp, w, h);
+        bool[,] collectibles = BuildGridFromList(collectibleListProp, w, h);
+        bool[,] cursorStarts = BuildGridFromList(cursorStartListProp, w, h);
 
         float totalW = w * CellPixels;
         float totalH = h * CellPixels;
@@ -45,7 +60,8 @@ public class GameOfLifeLevelPresetEditor : Editor
         }
 
         EditorGUILayout.Space(8);
-        EditorGUILayout.LabelField("Click or drag to toggle (live = white)", EditorStyles.miniLabel);
+        _paintMode = (CellPaintMode)EditorGUILayout.EnumPopup("Paint Mode", _paintMode);
+        EditorGUILayout.LabelField("Click or drag. Colors: live = white, collectible = yellow, cursor start = cyan.", EditorStyles.miniLabel);
 
         float gridPixelW = w * cellSize;
         float gridPixelH = h * cellSize;
@@ -74,7 +90,18 @@ public class GameOfLifeLevelPresetEditor : Editor
             {
                 Rect cellRect = new Rect(x * cellSize, gy * cellSize, cellSize, cellSize);
                 bool isAlive = live[x, y];
-                EditorGUI.DrawRect(cellRect, isAlive ? Color.white : new Color(0.22f, 0.22f, 0.22f));
+                bool isCollectible = collectibles[x, y];
+                bool isCursorStart = cursorStarts[x, y];
+
+                Color cellColor = new Color(0.22f, 0.22f, 0.22f);
+                if (isAlive)
+                    cellColor = Color.white;
+                else if (isCollectible)
+                    cellColor = new Color(1.0f, 0.85f, 0.2f); // yellow-ish
+                else if (isCursorStart)
+                    cellColor = Color.cyan;
+
+                EditorGUI.DrawRect(cellRect, cellColor);
                 if (isRepaint && cellSize > 6)
                 {
                     EditorGUI.DrawRect(new Rect(cellRect.xMax - 1, cellRect.y, 1, cellRect.height), new Color(0, 0, 0, 0.2f));
@@ -83,8 +110,9 @@ public class GameOfLifeLevelPresetEditor : Editor
 
                 if (e.type == EventType.MouseDown && e.button == 0 && cellRect.Contains(localMouse))
                 {
-                    Set(listProp, x, y, !isAlive);
-                    _dragPaintAlive = !isAlive;
+                    bool newState = !_dragPaintAlive;
+                    SetForMode(liveListProp, collectibleListProp, cursorStartListProp, x, y, _paintMode, newState, live[x, y], collectibles[x, y], cursorStarts[x, y]);
+                    _dragPaintAlive = newState;
                     _lastPaintX = x;
                     _lastPaintY = y;
                     e.Use();
@@ -95,9 +123,15 @@ public class GameOfLifeLevelPresetEditor : Editor
                 {
                     _lastPaintX = x;
                     _lastPaintY = y;
-                    if (isAlive != _dragPaintAlive)
+
+                    bool currentState =
+                        _paintMode == CellPaintMode.LiveCell ? isAlive :
+                        _paintMode == CellPaintMode.CollectibleCell ? isCollectible :
+                        isCursorStart;
+
+                    if (currentState != _dragPaintAlive)
                     {
-                        Set(listProp, x, y, _dragPaintAlive);
+                        SetForMode(liveListProp, collectibleListProp, cursorStartListProp, x, y, _paintMode, _dragPaintAlive, isAlive, isCollectible, isCursorStart);
                         e.Use();
                         GUI.changed = true;
                         Repaint();
@@ -112,7 +146,7 @@ public class GameOfLifeLevelPresetEditor : Editor
         so.ApplyModifiedProperties();
     }
 
-    static bool[,] BuildLiveGrid(SerializedProperty list, int w, int h)
+    static bool[,] BuildGridFromList(SerializedProperty list, int w, int h)
     {
         var live = new bool[w, h];
         int n = list.arraySize;
@@ -127,24 +161,88 @@ public class GameOfLifeLevelPresetEditor : Editor
         return live;
     }
 
-    static void Set(SerializedProperty list, int x, int y, bool alive)
+    static void SetForMode(
+        SerializedProperty liveList,
+        SerializedProperty collectibleList,
+        SerializedProperty cursorStartList,
+        int x,
+        int y,
+        CellPaintMode mode,
+        bool paintOn,
+        bool wasLive,
+        bool wasCollectible,
+        bool wasCursorStart)
     {
+        switch (mode)
+        {
+            case CellPaintMode.LiveCell:
+                if (paintOn)
+                {
+                    AddToList(liveList, x, y);
+                    RemoveFromList(collectibleList, x, y);
+                    RemoveFromList(cursorStartList, x, y);
+                }
+                else
+                {
+                    RemoveFromList(liveList, x, y);
+                }
+                break;
+
+            case CellPaintMode.CollectibleCell:
+                if (paintOn)
+                {
+                    AddToList(collectibleList, x, y);
+                    RemoveFromList(liveList, x, y); // collectible cells should not be alive
+                }
+                else
+                {
+                    RemoveFromList(collectibleList, x, y);
+                }
+                break;
+
+            case CellPaintMode.CursorStart:
+                if (paintOn)
+                {
+                    // Only one start point: clear all, then add this one.
+                    cursorStartList.arraySize = 0;
+                    AddToList(cursorStartList, x, y);
+                    RemoveFromList(liveList, x, y);
+                    RemoveFromList(collectibleList, x, y);
+                }
+                else
+                {
+                    RemoveFromList(cursorStartList, x, y);
+                }
+                break;
+        }
+    }
+
+    static void AddToList(SerializedProperty list, int x, int y)
+    {
+        // Avoid duplicates
         for (int i = 0; i < list.arraySize; i++)
         {
             SerializedProperty el = list.GetArrayElementAtIndex(i);
             if (el.FindPropertyRelative("x").intValue == x && el.FindPropertyRelative("y").intValue == y)
-            {
-                if (!alive)
-                    list.DeleteArrayElementAtIndex(i);
                 return;
-            }
         }
-        if (alive)
+
+        list.arraySize++;
+        SerializedProperty newEl = list.GetArrayElementAtIndex(list.arraySize - 1);
+        newEl.FindPropertyRelative("x").intValue = x;
+        newEl.FindPropertyRelative("y").intValue = y;
+    }
+
+    static void RemoveFromList(SerializedProperty list, int x, int y)
+    {
+        for (int i = list.arraySize - 1; i >= 0; i--)
         {
-            list.arraySize++;
-            SerializedProperty newEl = list.GetArrayElementAtIndex(list.arraySize - 1);
-            newEl.FindPropertyRelative("x").intValue = x;
-            newEl.FindPropertyRelative("y").intValue = y;
+            SerializedProperty el = list.GetArrayElementAtIndex(i);
+            if (el.FindPropertyRelative("x").intValue == x && el.FindPropertyRelative("y").intValue == y)
+            {
+                list.DeleteArrayElementAtIndex(i);
+                break;
+            }
         }
     }
 }

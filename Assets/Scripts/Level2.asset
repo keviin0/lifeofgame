@@ -85,3 +85,11 @@ MonoBehaviour:
   - {x: 25, y: 3}
   - {x: 24, y: 5}
   - {x: 24, y: 4}
+  collectibleCells:
+  - {x: 5, y: 27}
+  - {x: 16, y: 16}
+  - {x: 27, y: 4}
+  - {x: 5, y: 4}
+  - {x: 27, y: 26}
+  cursorStartCells:
+  - {x: 16, y: 4}

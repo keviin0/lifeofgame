@@ -21,4 +21,10 @@ public class GameOfLifeCellView : MonoBehaviour
         if (_collider != null)
             _collider.enabled = alive;
     }
+ 
+    public void SetColorOnly(Color color)
+    {
+        if (_spriteRenderer != null)
+            _spriteRenderer.color = color;
+    }
 }

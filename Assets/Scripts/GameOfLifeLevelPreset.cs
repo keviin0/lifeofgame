@@ -18,6 +18,12 @@ public class GameOfLifeLevelPreset : ScriptableObject
     [Tooltip("Initial live cell positions in grid coordinates (0,0 = bottom-left). Add entries in inspector or use the helper below.")]
     public List<Vector2Int> initialLiveCells = new List<Vector2Int>();
 
+    [Tooltip("Grid positions for collectible cells. These do NOT start alive in the simulation; they are spawned as separate collectible objects.")]
+    public List<Vector2Int> collectibleCells = new List<Vector2Int>();
+
+    [Tooltip("Optional grid positions where the cursor/player can start. Not yet used by gameplay, but editable in the level grid.")]
+    public List<Vector2Int> cursorStartCells = new List<Vector2Int>();
+
     /// <summary>
     /// Optional: set initial state from a simple pattern string.
     /// '1' or '#' = alive, anything else = dead. One row per line.
@@ -53,5 +59,21 @@ public class GameOfLifeLevelPreset : ScriptableObject
     public IReadOnlyList<Vector2Int> GetInitialLiveCells()
     {
         return initialLiveCells;
+    }
+
+    /// <summary>
+    /// Read-only view of collectible cell positions.
+    /// </summary>
+    public IReadOnlyList<Vector2Int> GetCollectibleCells()
+    {
+        return collectibleCells;
+    }
+
+    /// <summary>
+    /// Read-only view of cursor start cell positions.
+    /// </summary>
+    public IReadOnlyList<Vector2Int> GetCursorStartCells()
+    {
+        return cursorStartCells;
     }
 }

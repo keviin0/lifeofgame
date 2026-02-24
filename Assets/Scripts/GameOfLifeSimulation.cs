@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -25,9 +26,16 @@ public class GameOfLifeSimulation : MonoBehaviour
     [Tooltip("Time in seconds between Game of Life steps")]
     [SerializeField] private float stepInterval = 0.4f;
 
+    [Tooltip("If true, the simulation starts running immediately on load. If false, it waits for an explicit StartSimulation call (e.g. from the cursor).")]
+    [SerializeField] private bool autoStart = false;
+
     [Header("Visual")]
     [SerializeField] private Color aliveColor = Color.white;
-    [SerializeField] private Color deadColor = new Color(0.2f, 0.2f, 0.2f, 0.5f);
+    [SerializeField] private Color deadColor = new Color(0.2f, 0.2f, 0.5f, 0.5f);
+
+    [Header("Cursor")]
+    [Tooltip("Optional cursor controller that will be positioned at the level's cursor start cell, if defined.")]
+    [SerializeField] private CursorController cursorController;
 
     // State
     private int _width;
@@ -36,20 +44,86 @@ public class GameOfLifeSimulation : MonoBehaviour
     private bool[,] _next;
     private float _stepTimer;
     private GameOfLifeCellView[,] _cells;
+    private System.Collections.Generic.List<GameObject> _spawnedCollectibles = new System.Collections.Generic.List<GameObject>();
     private bool _initialized;
+    private bool _running;
+    private bool _inTransition;
+    private int _remainingCollectibles;
+    private LevelManager _levelManager;
+    private float _baseStepInterval;
 
     public int GridWidth => _width;
     public int GridHeight => _height;
     public float CellSize => cellSize;
     public Vector2 GridOrigin => gridOrigin;
     public bool IsInitialized => _initialized;
+    public bool IsRunning => _running;
 
     /// <summary>
-    /// World position for the center of cell (x, y).
+    /// Current time in seconds between simulation steps. Smaller = faster.
+    /// </summary>
+    public float StepInterval
+    {
+        get => stepInterval;
+        set => stepInterval = Mathf.Max(0.01f, value);
+    }
+
+    /// <summary>
+    /// Make the simulation run faster by multiplying its speed.
+    /// For example, multiplier 1.5 makes it 1.5x faster (smaller step interval).
+    /// </summary>
+    public void MultiplyStepSpeed(float speedMultiplier)
+    {
+        if (speedMultiplier <= 0f) return;
+        StepInterval = StepInterval / speedMultiplier;
+        // Keep timer in range so the new interval takes effect cleanly.
+        _stepTimer = Mathf.Min(_stepTimer, StepInterval);
+    }
+
+    /// <summary>
+    /// World position for cell (x, y) matching how cells are built in BuildCellViews.
     /// </summary>
     public Vector2 CellToWorld(int x, int y)
     {
-        return gridOrigin + new Vector2((x + 0.5f) * cellSize, (y + 0.5f) * cellSize);
+        return gridOrigin + new Vector2(x * cellSize, y * cellSize);
+    }
+
+    /// <summary>
+    /// Start running the simulation (if initialized). Used by cursor click.
+    /// </summary>
+    public void StartSimulation()
+    {
+        if (!_initialized) return;
+        _running = true;
+        _stepTimer = stepInterval;
+    }
+
+    /// <summary>
+    /// Stop/pause the simulation.
+    /// </summary>
+    public void StopSimulation()
+    {
+        _running = false;
+    }
+
+    /// <summary>
+    /// Called when the player dies (e.g. cursor hits a live cell).
+    /// Plays the same transition but reloads the current level instead of advancing.
+    /// </summary>
+    public void OnPlayerDied()
+    {
+        if (_inTransition) return;
+        StartCoroutine(LevelDeathRoutine());
+    }
+
+    public void OnCollectibleCollected()
+    {
+        if (_remainingCollectibles <= 0) return;
+        _remainingCollectibles--;
+        if (_remainingCollectibles == 0)
+        {
+            StartCoroutine(LevelCompleteRoutine());
+        }
     }
 
     /// <summary>
@@ -83,12 +157,25 @@ public class GameOfLifeSimulation : MonoBehaviour
         return IsAliveAtGrid(c.x, c.y);
     }
 
+    private void Awake()
+    {
+        // Remember the inspector-configured base interval so we can reset
+        // between levels after collectibles speed it up.
+        _baseStepInterval = stepInterval;
+    }
+
     private void Start()
     {
         if (levelPreset != null)
             LoadLevel(levelPreset);
         else
             LoadLevel(GetOrCreateDefaultPreset());
+
+        // If autoStart is enabled, or no cursorController is wired,
+        // start the simulation immediately. Otherwise we wait for the
+        // cursor to call StartSimulation() after the player clicks it.
+        if (autoStart || cursorController == null)
+            StartSimulation();
     }
 
     /// <summary>
@@ -111,7 +198,7 @@ public class GameOfLifeSimulation : MonoBehaviour
 
     private void Update()
     {
-        if (!_initialized) return;
+        if (!_initialized || !_running) return;
         _stepTimer -= Time.deltaTime;
         if (_stepTimer <= 0f)
         {
@@ -128,6 +215,9 @@ public class GameOfLifeSimulation : MonoBehaviour
         if (preset == null) return;
 
         ClearGrid();
+
+        // Reset timestep back to the base value for this level.
+        StepInterval = _baseStepInterval;
         _width = preset.gridWidth;
         _height = preset.gridHeight;
         _current = new bool[_width, _height];
@@ -143,23 +233,42 @@ public class GameOfLifeSimulation : MonoBehaviour
         }
 
         BuildCellViews();
+        SpawnCollectibles(preset);
+        PositionCursorStart(preset);
         _stepTimer = stepInterval;
         _initialized = true;
+        _running = false;
     }
 
     private void ClearGrid()
     {
-        if (_cells == null) return;
-        for (int x = 0; x < _cells.GetLength(0); x++)
+        if (_cells != null)
         {
-            for (int y = 0; y < _cells.GetLength(1); y++)
+            for (int x = 0; x < _cells.GetLength(0); x++)
             {
-                if (_cells[x, y] != null && _cells[x, y].gameObject != null)
-                    Destroy(_cells[x, y].gameObject);
+                for (int y = 0; y < _cells.GetLength(1); y++)
+                {
+                    if (_cells[x, y] != null && _cells[x, y].gameObject != null)
+                        Destroy(_cells[x, y].gameObject);
+                }
             }
+            _cells = null;
         }
-        _cells = null;
+
+        if (_spawnedCollectibles != null)
+        {
+            for (int i = 0; i < _spawnedCollectibles.Count; i++)
+            {
+                if (_spawnedCollectibles[i] != null)
+                    Destroy(_spawnedCollectibles[i]);
+            }
+            _spawnedCollectibles.Clear();
+        }
+
         _initialized = false;
+        _running = false;
+        _inTransition = false;
+        _remainingCollectibles = 0;
     }
 
     private void BuildCellViews()
@@ -195,6 +304,216 @@ public class GameOfLifeSimulation : MonoBehaviour
                 _cells[x, y] = view;
             }
         }
+    }
+
+    private void SpawnCollectibles(GameOfLifeLevelPreset preset)
+    {
+        var positions = preset.GetCollectibleCells();
+        if (positions == null) return;
+
+        _remainingCollectibles = positions.Count;
+
+        Sprite sprite = CreateSquareSprite();
+
+        foreach (var cell in positions)
+        {
+            if (cell.x < 0 || cell.x >= _width || cell.y < 0 || cell.y >= _height)
+                continue;
+
+            Vector2 worldPos = CellToWorld(cell.x, cell.y);
+
+            GameObject go = new GameObject($"Collectible_{cell.x}_{cell.y}");
+            go.transform.SetParent(transform);
+            go.transform.localPosition = new Vector3(worldPos.x, worldPos.y, 0f);
+            go.transform.localScale = new Vector3(cellSize, cellSize, 1f);
+
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.color = new Color(1.0f, 0.85f, 0.2f); // match editor's yellow collectible color
+            sr.sortingOrder = 1; // render above normal cells
+            // If we're in the middle of a transition, keep collectibles hidden until it finishes.
+            if (_inTransition)
+                sr.enabled = false;
+
+            var col = go.AddComponent<CircleCollider2D>();
+            col.isTrigger = true;
+
+            go.AddComponent<CollectibleCell>();
+
+            _spawnedCollectibles.Add(go);
+        }
+    }
+
+    private void SetCollectiblesVisible(bool visible)
+    {
+        if (_spawnedCollectibles == null) return;
+        for (int i = 0; i < _spawnedCollectibles.Count; i++)
+        {
+            var go = _spawnedCollectibles[i];
+            if (go == null) continue;
+            var sr = go.GetComponent<SpriteRenderer>();
+            if (sr != null)
+                sr.enabled = visible;
+        }
+    }
+
+    private IEnumerator LevelCompleteRoutine()
+    {
+        if (_inTransition) yield break;
+        _inTransition = true;
+
+        StopSimulation();
+
+        // Small pause before the wipe.
+        yield return new WaitForSeconds(1f);
+
+        // Hide collectibles so they don't render on top of the transition.
+        SetCollectiblesVisible(false);
+
+        if (_cells != null)
+        {
+            // Fade current level to black row by row from top (highest y) to bottom.
+            for (int y = _height - 1; y >= 0; y--)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetColorOnly(Color.black);
+                }
+                yield return new WaitForSeconds(0.03f);
+            }
+        }
+
+        // Move to the next level, preserving that level's preset data.
+        if (_levelManager == null)
+            _levelManager = FindFirstObjectByType<LevelManager>();
+
+        if (_levelManager != null)
+        {
+            _levelManager.LoadNextLevel();
+            // Wait a frame so the new level can finish loading/building its grid.
+            yield return null;
+        }
+
+        // Now reveal the NEW level: start fully black, then wipe back to life from bottom to top.
+        if (_cells != null)
+        {
+            // First force all cells to black so we reveal from black -> alive/dead.
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetColorOnly(Color.black);
+                }
+            }
+
+            // Then fade back to alive/dead colors from bottom to top on the new level.
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    bool alive = _current[x, y];
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetAlive(alive, aliveColor, deadColor);
+                }
+                yield return new WaitForSeconds(0.03f);
+            }
+        }
+
+        // Show collectibles again now that the new level is fully revealed.
+        SetCollectiblesVisible(true);
+
+        _inTransition = false;
+    }
+
+    private IEnumerator LevelDeathRoutine()
+    {
+        if (_inTransition) yield break;
+        _inTransition = true;
+
+        StopSimulation();
+
+        // Small pause before the wipe.
+        yield return new WaitForSeconds(1f);
+
+        // Hide collectibles during the transition.
+        SetCollectiblesVisible(false);
+
+        if (_cells != null)
+        {
+            // Fade current level to black row by row from top (highest y) to bottom.
+            for (int y = _height - 1; y >= 0; y--)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetColorOnly(Color.black);
+                }
+                yield return new WaitForSeconds(0.03f);
+            }
+        }
+
+        // Reload the current level.
+        if (_levelManager == null)
+            _levelManager = FindFirstObjectByType<LevelManager>();
+
+        if (_levelManager != null)
+        {
+            int index = _levelManager.CurrentLevelIndex;
+            _levelManager.LoadLevelByIndex(index);
+            // Wait a frame so the new level can finish loading/building its grid.
+            yield return null;
+        }
+
+        // Reveal the reloaded level from black, bottom to top.
+        if (_cells != null)
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetColorOnly(Color.black);
+                }
+            }
+
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    bool alive = _current[x, y];
+                    var cellView = _cells[x, y];
+                    if (cellView != null)
+                        cellView.SetAlive(alive, aliveColor, deadColor);
+                }
+                yield return new WaitForSeconds(0.03f);
+            }
+        }
+
+        // Show collectibles again now that the level is fully revealed.
+        SetCollectiblesVisible(true);
+
+        _inTransition = false;
+    }
+
+    private void PositionCursorStart(GameOfLifeLevelPreset preset)
+    {
+        if (cursorController == null) return;
+        var starts = preset.GetCursorStartCells();
+        if (starts == null || starts.Count == 0) return;
+
+        var cell = starts[0];
+        if (cell.x < 0 || cell.x >= _width || cell.y < 0 || cell.y >= _height)
+            return;
+
+        Vector2 worldPos = CellToWorld(cell.x, cell.y);
+        cursorController.PlaceAtStart(worldPos);
     }
 
     private static Sprite _sharedSprite;

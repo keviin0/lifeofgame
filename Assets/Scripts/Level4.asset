@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ab90f4ddd80c4900a78f5383340151c, type: 3}
+  m_Name: Level4
+  m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeLevelPreset
+  gridWidth: 42
+  gridHeight: 42
+  initialLiveCells:
+  - {x: 20, y: 41}
+  - {x: 20, y: 40}
+  - {x: 21, y: 40}
+  - {x: 21, y: 41}
+  - {x: 20, y: 1}
+  - {x: 20, y: 0}
+  - {x: 21, y: 1}
+  - {x: 21, y: 0}
+  - {x: 8, y: 36}
+  - {x: 9, y: 36}
+  - {x: 9, y: 35}
+  - {x: 9, y: 34}
+  - {x: 11, y: 34}
+  - {x: 11, y: 33}
+  - {x: 10, y: 33}
+  - {x: 7, y: 32}
+  - {x: 5, y: 33}
+  - {x: 5, y: 32}
+  - {x: 6, y: 32}
+  - {x: 8, y: 31}
+  - {x: 8, y: 30}
+  - {x: 7, y: 30}
+  - {x: 22, y: 34}
+  - {x: 22, y: 32}
+  - {x: 22, y: 33}
+  - {x: 23, y: 34}
+  - {x: 23, y: 31}
+  - {x: 30, y: 32}
+  - {x: 30, y: 33}
+  - {x: 31, y: 32}
+  - {x: 32, y: 33}
+  - {x: 32, y: 34}
+  - {x: 32, y: 35}
+  - {x: 33, y: 35}
+  - {x: 34, y: 22}
+  - {x: 41, y: 21}
+  - {x: 40, y: 21}
+  - {x: 40, y: 20}
+  - {x: 41, y: 20}
+  - {x: 0, y: 21}
+  - {x: 1, y: 21}
+  - {x: 1, y: 20}
+  - {x: 0, y: 20}
+  - {x: 33, y: 22}
+  - {x: 35, y: 23}
+  - {x: 35, y: 22}
+  - {x: 32, y: 23}
+  - {x: 6, y: 19}
+  - {x: 6, y: 18}
+  - {x: 7, y: 19}
+  - {x: 8, y: 19}
+  - {x: 9, y: 18}
+  - {x: 19, y: 6}
+  - {x: 18, y: 6}
+  - {x: 19, y: 8}
+  - {x: 19, y: 7}
+  - {x: 18, y: 9}
+  - {x: 11, y: 7}
+  - {x: 11, y: 8}
+  - {x: 10, y: 8}
+  - {x: 9, y: 7}
+  - {x: 9, y: 6}
+  - {x: 9, y: 5}
+  - {x: 8, y: 5}
+  - {x: 8, y: 10}
+  - {x: 7, y: 11}
+  - {x: 8, y: 11}
+  - {x: 5, y: 9}
+  - {x: 6, y: 9}
+  - {x: 7, y: 9}
+  - {x: 5, y: 8}
+  - {x: 31, y: 8}
+  - {x: 30, y: 8}
+  - {x: 30, y: 7}
+  - {x: 32, y: 7}
+  - {x: 32, y: 6}
+  - {x: 32, y: 5}
+  - {x: 33, y: 5}
+  - {x: 33, y: 10}
+  - {x: 33, y: 11}
+  - {x: 34, y: 11}
+  - {x: 34, y: 9}
+  - {x: 35, y: 9}
+  - {x: 36, y: 9}
+  - {x: 36, y: 8}
+  - {x: 33, y: 30}
+  - {x: 34, y: 29}
+  - {x: 33, y: 29}
+  - {x: 34, y: 31}
+  - {x: 35, y: 31}
+  - {x: 36, y: 31}
+  - {x: 36, y: 32}
+  collectibleCells:
+  - {x: 7, y: 7}
+  - {x: 7, y: 34}
+  - {x: 34, y: 33}
+  - {x: 36, y: 23}
+  - {x: 5, y: 18}
+  cursorStartCells:
+  - {x: 20, y: 20}
