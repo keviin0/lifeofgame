@@ -18,6 +18,7 @@ public class GameOfLifeCellView : MonoBehaviour
     {
         if (_spriteRenderer != null)
             _spriteRenderer.color = alive ? aliveColor : deadColor;
+        _spriteRenderer.sortingOrder = alive ? 2 : 0;
         if (_collider != null)
             _collider.enabled = alive;
     }
