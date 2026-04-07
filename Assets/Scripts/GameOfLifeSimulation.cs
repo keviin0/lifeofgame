@@ -90,6 +90,11 @@ public class GameOfLifeSimulation : MonoBehaviour
     }
 
     /// <summary>
+    /// Fired each time the simulation starts running (e.g. after the player's first click).
+    /// </summary>
+    public event Action OnSimulationStarted;
+
+    /// <summary>
     /// Start running the simulation (if initialized). Used by cursor click.
     /// </summary>
     public void StartSimulation()
@@ -97,6 +102,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         if (!_initialized) return;
         _running = true;
         _stepTimer = stepInterval;
+        OnSimulationStarted?.Invoke();
     }
 
     /// <summary>
@@ -108,14 +114,25 @@ public class GameOfLifeSimulation : MonoBehaviour
     }
 
     /// <summary>
+    /// Fired when the player dies (before the death transition begins).
+    /// </summary>
+    public event Action OnPlayerDeath;
+
+    /// <summary>
     /// Called when the player dies (e.g. cursor hits a live cell).
     /// Plays the same transition but reloads the current level instead of advancing.
     /// </summary>
     public void OnPlayerDied()
     {
         if (_inTransition) return;
+        OnPlayerDeath?.Invoke();
         StartCoroutine(LevelDeathRoutine());
     }
+
+    /// <summary>
+    /// Fired when all collectibles have been collected and the level objective is complete.
+    /// </summary>
+    public event Action OnObjectiveCompleted;
 
     public void OnCollectibleCollected()
     {
@@ -123,6 +140,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         _remainingCollectibles--;
         if (_remainingCollectibles == 0)
         {
+            OnObjectiveCompleted?.Invoke();
             StartCoroutine(LevelCompleteRoutine());
         }
     }

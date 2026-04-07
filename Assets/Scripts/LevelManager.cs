@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 /// <summary>
@@ -12,6 +13,17 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private GameOfLifeLevelPreset[] levels;
     [Tooltip("Current level index (0-based). Used when transitioning.")]
     [SerializeField] private int currentLevelIndex;
+
+    /// <summary>
+    /// Fired whenever a level is loaded or reloaded. Passes the new level index.
+    /// </summary>
+    public event Action<int> OnLevelLoaded;
+
+    /// <summary>
+    /// Fired when the current level is completed (before transitioning to the next).
+    /// Passes the completed level index.
+    /// </summary>
+    public event Action<int> OnLevelCompleted;
 
     private void Start()
     {
@@ -40,6 +52,7 @@ public class LevelManager : MonoBehaviour
         currentLevelIndex = index;
         if (simulation != null && levels[index] != null)
             simulation.LoadLevel(levels[index], startBlack);
+        OnLevelLoaded?.Invoke(currentLevelIndex);
     }
 
     /// <summary>
@@ -50,6 +63,7 @@ public class LevelManager : MonoBehaviour
     public void LoadNextLevel(bool startBlack = false)
     {
         if (levels == null || levels.Length == 0) return;
+        OnLevelCompleted?.Invoke(currentLevelIndex);
         currentLevelIndex = (currentLevelIndex + 1) % levels.Length;
         LoadLevelByIndex(currentLevelIndex, startBlack);
     }
