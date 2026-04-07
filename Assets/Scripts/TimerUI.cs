@@ -1,12 +1,13 @@
-using System.Collections;
 using UnityEngine;
 using TMPro;
 
 /// <summary>
 /// Displays a total run timer and a per-level timer using TextMeshPro texts.
-/// The level timer only starts after the player's first click (simulation start).
-/// Both completed and failed level times are added to the total.
-/// On objective completion the level time is animated into the total with a fast count-up.
+/// The level timer starts when the simulation begins (first click) and keeps the same
+/// value across death/restart on the same level (it does not jump back to zero when you
+/// click to start again). Total time is updated instantly (no animation): each death and
+/// each objective complete only adds the *new* elapsed level time since the last add, so
+/// nothing is double-counted.
 /// </summary>
 public class TimerUI : MonoBehaviour
 {
@@ -20,19 +21,14 @@ public class TimerUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI levelTimerText;
 
     [Header("Labels")]
-    [SerializeField] private string totalTimerPrefix = "Life Time: ";
-    [SerializeField] private string levelTimerPrefix = "This Life: ";
-
-    [Header("Animation")]
-    [Tooltip("How long (in real seconds) the count-up animation takes.")]
-    [SerializeField] private float animationDuration = 0.8f;
+    [SerializeField] private string totalTimerPrefix = "Total Time: ";
+    [SerializeField] private string levelTimerPrefix = "Current Level: ";
 
     private float totalTime;
     private float levelTime;
-    private float displayedTotalTime;
+    /// <summary>How much of <see cref="levelTime"/> has already been added to <see cref="totalTime"/> for this level (via death and/or complete).</summary>
+    private float levelTimeAlreadyInTotal;
     private bool levelTimerRunning;
-    private bool isAnimating;
-    private Coroutine animationCoroutine;
     private LevelManager levelManager;
     private GameOfLifeSimulation simulation;
 
@@ -76,100 +72,61 @@ public class TimerUI : MonoBehaviour
         UpdateDisplay();
     }
 
-    /// <summary>
-    /// Starts the level timer when the player clicks and the simulation begins.
-    /// </summary>
     private void HandleSimulationStarted()
     {
+        // Do not clear levelTime — after a death the same-level restart should continue from the frozen value.
         levelTimerRunning = true;
     }
 
-    /// <summary>
-    /// Stops the level timer and plays the count-up animation when the player dies.
-    /// </summary>
     private void HandlePlayerDeath()
     {
         levelTimerRunning = false;
-
-        if (animationCoroutine != null)
-            StopCoroutine(animationCoroutine);
-
-        float timeToAdd = levelTime;
-        totalTime += timeToAdd;
-        levelTime = 0f;
-        animationCoroutine = StartCoroutine(AnimateTotalTimerRoutine(totalTime - timeToAdd, totalTime));
+        AddNewLevelTimeToTotal();
     }
 
-    /// <summary>
-    /// Stops the level timer and plays the count-up animation into the total.
-    /// </summary>
     private void HandleObjectiveCompleted()
     {
         levelTimerRunning = false;
-
-        if (animationCoroutine != null)
-            StopCoroutine(animationCoroutine);
-
-        float timeToAdd = levelTime;
-        totalTime += timeToAdd;
+        AddNewLevelTimeToTotal();
         levelTime = 0f;
-        animationCoroutine = StartCoroutine(AnimateTotalTimerRoutine(totalTime - timeToAdd, totalTime));
+        levelTimeAlreadyInTotal = 0f;
+    }
+
+    private void AddNewLevelTimeToTotal()
+    {
+        float delta = levelTime - levelTimeAlreadyInTotal;
+        if (delta > 0f)
+            totalTime += delta;
+        levelTimeAlreadyInTotal = levelTime;
     }
 
     /// <summary>
-    /// Finishes any running animation, resets and pauses the level timer.
+    /// When level 0 loads, reset the whole run. Otherwise only stop the clock (e.g. mid-transition).
     /// </summary>
     private void HandleLevelLoaded(int levelIndex)
     {
-        if (animationCoroutine != null)
-        {
-            StopCoroutine(animationCoroutine);
-            animationCoroutine = null;
-        }
-
-        totalTime += levelTime;
-        displayedTotalTime = totalTime;
-        isAnimating = false;
-        levelTime = 0f;
         levelTimerRunning = false;
-    }
 
-    /// <summary>
-    /// Animates the displayed total time from startValue up to endValue
-    /// over animationDuration seconds using unscaled time.
-    /// </summary>
-    private IEnumerator AnimateTotalTimerRoutine(float startValue, float endValue)
-    {
-        isAnimating = true;
-        float elapsed = 0f;
-
-        while (elapsed < animationDuration)
+        if (levelIndex == 0)
         {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / animationDuration);
-            float eased = 1f - (1f - t) * (1f - t);
-            displayedTotalTime = Mathf.Lerp(startValue, endValue, eased);
-            yield return null;
+            totalTime = 0f;
+            levelTime = 0f;
+            levelTimeAlreadyInTotal = 0f;
         }
-
-        displayedTotalTime = endValue;
-        isAnimating = false;
-        animationCoroutine = null;
     }
 
     private void UpdateDisplay()
     {
         if (totalTimerText != null)
         {
-            float shownTotal = isAnimating ? displayedTotalTime : totalTime;
-            var totalSpan = System.TimeSpan.FromSeconds(shownTotal);
-            totalTimerText.text = totalTimerPrefix + totalSpan.ToString(TIME_FORMAT);
+            var totalSpan = System.TimeSpan.FromSeconds(totalTime);
+            totalTimerText.text = totalTimerPrefix + "\n" + totalSpan.ToString(TIME_FORMAT);
         }
 
         if (levelTimerText != null)
         {
             var levelSpan = System.TimeSpan.FromSeconds(levelTime);
-            levelTimerText.text = levelTimerPrefix + levelSpan.ToString(TIME_FORMAT);
+            levelTimerText.text = levelTimerPrefix + "\n" + levelSpan.ToString(TIME_FORMAT);
         }
     }
 }

@@ -184,7 +184,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Life Time: 00:00.00'
+  m_text: "Total Time: \n00:00.00"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6fb550dca9aba964ba6b7114d4275197, type: 2}
   m_sharedMaterial: {fileID: -3463791911452200345, guid: 6fb550dca9aba964ba6b7114d4275197, type: 2}
@@ -218,8 +218,8 @@ MonoBehaviour:
   m_fontSizeMin: 0
   m_fontSizeMax: 0
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -313,7 +313,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'This Life: 00:00.00'
+  m_text: "Current Level: \n00:00.00"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 6fb550dca9aba964ba6b7114d4275197, type: 2}
   m_sharedMaterial: {fileID: -3463791911452200345, guid: 6fb550dca9aba964ba6b7114d4275197, type: 2}
@@ -347,8 +347,8 @@ MonoBehaviour:
   m_fontSizeMin: 0
   m_fontSizeMax: 0
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -919,7 +919,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 37, y: -395}
+  m_AnchoredPosition: {x: -36.73, y: -395}
   m_SizeDelta: {x: 350, y: 120}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1495270237
@@ -1401,8 +1401,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TimerUI
   totalTimerText: {fileID: 16623314}
   levelTimerText: {fileID: 244677889}
-  totalTimerPrefix: 'Life Time: '
-  levelTimerPrefix: 'This Life: '
+  totalTimerPrefix: 'Total Time:'
+  levelTimerPrefix: 'Current Level:'
 --- !u!1 &1803707861
 GameObject:
   m_ObjectHideFlags: 0
