@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f778396e19185475d9cbbc7c02b20e65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeSimulation
-  levelPreset: {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
+  levelPreset: {fileID: 11400000, guid: f711f6b3661e94a39a3e12c19dbd808d, type: 2}
   targetGridWorldSize: 10
   centerGridOnLoad: 0
   gridOrigin: {x: -5, y: -4.8}

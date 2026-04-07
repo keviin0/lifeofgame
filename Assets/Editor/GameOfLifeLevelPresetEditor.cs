@@ -18,6 +18,7 @@ public class GameOfLifeLevelPresetEditor : Editor
     }
 
     static CellPaintMode _paintMode = CellPaintMode.LiveCell;
+    string _pasteBase64Buffer = "";
 
     public override void OnInspectorGUI()
     {
@@ -142,6 +143,42 @@ public class GameOfLifeLevelPresetEditor : Editor
 
         GUI.EndGroup();
         EditorGUILayout.EndScrollView();
+
+        EditorGUILayout.Space(6);
+        EditorGUILayout.LabelField("Base64 paste / verify", EditorStyles.boldLabel);
+        _pasteBase64Buffer = EditorGUILayout.TextArea(_pasteBase64Buffer, GUILayout.MinHeight(48));
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            if (GUILayout.Button("Apply paste to level"))
+            {
+                var preset = (GameOfLifeLevelPreset)target;
+                if (preset.TryFromBase64(_pasteBase64Buffer, out string err))
+                {
+                    EditorUtility.SetDirty(preset);
+                    so.Update();
+                    EditorUtility.DisplayDialog("Base64 applied", "Decoded and applied to this preset.", "OK");
+                }
+                else
+                    EditorUtility.DisplayDialog("Base64 failed", err ?? "Unknown error.", "OK");
+            }
+
+            if (GUILayout.Button("Verify roundtrip"))
+            {
+                if (GameOfLifeLevelPreset.VerifyRoundTripBase64(_pasteBase64Buffer, out string err))
+                    EditorUtility.DisplayDialog("Verify OK", "Decode and re-encode match the same bytes.", "OK");
+                else
+                    EditorUtility.DisplayDialog("Verify failed", err ?? "Unknown error.", "OK");
+            }
+        }
+
+        if (GUILayout.Button("To Base64 (copy)"))
+        {
+            string base64 = (target as GameOfLifeLevelPreset).ToBase64();
+            EditorGUIUtility.systemCopyBuffer = base64;
+            _pasteBase64Buffer = base64;
+            EditorUtility.DisplayDialog("Base64 copied", "Copied to clipboard and filled the text field above.", "OK");
+        }
 
         so.ApplyModifiedProperties();
     }
