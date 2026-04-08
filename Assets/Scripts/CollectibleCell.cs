@@ -23,12 +23,24 @@ public class CollectibleCell : MonoBehaviour
     [Tooltip("Only objects with this tag can collect the cell. Leave empty to allow any collector.")]
     [SerializeField] private string playerTag = "";
 
+
+    [Header("Audio")]
+    private AudioClip _collectSfx;
+
     private bool _collected;
 
     private void Awake()
     {
         if (simulation == null)
             simulation = FindFirstObjectByType<GameOfLifeSimulation>();
+
+        _collectSfx = Resources.Load<AudioClip>("WinSound");
+
+    if (_collectSfx == null)
+    {
+        Debug.LogWarning("CollectibleCell: Could not find WinSound in Resources folder!");
+    }
+
     }
 
     private void TryCollect(GameObject collector)
@@ -43,6 +55,12 @@ public class CollectibleCell : MonoBehaviour
         }
 
         _collected = true;
+
+        // Play the sound we loaded in Awake
+        if (_collectSfx != null)
+        {
+        AudioSource.PlayClipAtPoint(_collectSfx, transform.position);
+        }
 
         if (simulation != null)
         {

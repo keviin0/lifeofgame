@@ -1,2 +1,15 @@
 fileFormatVersion: 2
 guid: 8e3918e6a9ea56541a5af7365715577f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - simulation: {instanceID: 0}
+  - audioSource: {instanceID: 0}
+  - winSfx: {fileID: 8300000, guid: 89d59a077629c4753a689976b44de97f, type: 3}
+  - loseSfx: {fileID: 8300000, guid: 5eb3d085e601f4b1fa8a5f8be882ce47, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

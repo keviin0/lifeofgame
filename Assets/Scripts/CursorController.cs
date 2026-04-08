@@ -21,14 +21,37 @@ public class CursorController : MonoBehaviour
     private bool _waitingForStart;
     private Rigidbody2D _rb;
 
+    [Header("Audio")]
+    [SerializeField] public AudioSource audioSource;
+    [SerializeField] public AudioClip loseSfx;
+
     private void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
         _rb.bodyType = RigidbodyType2D.Kinematic;
         _rb.useFullKinematicContacts = true;
 
+        audioSource = GetComponent<AudioSource>();
+
+        if (audioSource == null) {
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+            
+        }
+        
+        if (audioSource == null) 
+        {
+            Debug.LogError("CursorController: No AudioSource found on this object!");
+        }
+
         if (simulation == null)
             simulation = FindFirstObjectByType<GameOfLifeSimulation>();
+
+        loseSfx = Resources.Load<AudioClip>("LoseSound");
+
+        if (simulation == null)
+            simulation = FindFirstObjectByType<GameOfLifeSimulation>();
+        
     }
 
     private void Update()
@@ -70,6 +93,11 @@ public class CursorController : MonoBehaviour
         if (_hasCollided) return;
         _hasCollided = true;
 
+        // Play lose sound.
+        if (audioSource != null && loseSfx != null) {
+            AudioSource.PlayClipAtPoint(loseSfx, transform.position);
+        }
+
         // Stop following the mouse.
         followMouse = false;
 
@@ -91,12 +119,15 @@ public class CursorController : MonoBehaviour
     {
         if (IsLiveCellCollider(collision.collider))
             HandleCollisionStop();
+
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (IsLiveCellCollider(other))
             HandleCollisionStop();
+
+
     }
 
     /// <summary>
