@@ -1,8 +1,9 @@
 using UnityEngine;
 
 /// <summary>
-/// Makes the attached sprite follow the mouse position in world space
-/// after the level has started, and stop when it collides with something.
+/// After the level starts, moves the sprite by the mouse's screen delta each frame
+/// (converted to world space) so it does not snap to the cursor on click.
+/// Stops when it collides with a live cell. Before start, placed at cursor start and clicked to begin.
 /// Before the level starts, it can be placed at a \"cursor start\" cell and
 /// clicked to begin the simulation.
 /// Requires a 2D collider and a Rigidbody2D on this object.
@@ -16,10 +17,15 @@ public class CursorController : MonoBehaviour
 
     [Tooltip("Simulation to start when this sprite is clicked at the beginning of a level.")]
     [SerializeField] private GameOfLifeSimulation simulation;
+    [SerializeField] private Vector2[] _clickColliderPoints;
+    [SerializeField] private Vector2[] _playColliderPoints;
+    private LevelManager _levelManager;
 
     private bool _hasCollided;
     private bool _waitingForStart;
+    private Vector3 _lastMouseScreen;
     private Rigidbody2D _rb;
+    private PolygonCollider2D _collider;
 
     private void Awake()
     {
@@ -27,33 +33,48 @@ public class CursorController : MonoBehaviour
         _rb.bodyType = RigidbodyType2D.Kinematic;
         _rb.useFullKinematicContacts = true;
 
+        _collider = GetComponent<PolygonCollider2D>();
+        if (_levelManager == null)
+            _levelManager = FindFirstObjectByType<LevelManager>();
         if (simulation == null)
             simulation = FindFirstObjectByType<GameOfLifeSimulation>();
+
+        _levelManager.OnLevelLoaded += OnLevelLoaded;
+    }
+
+    private void OnLevelLoaded(int index)
+    {
+        _collider.points = _clickColliderPoints;
     }
 
     private void Update()
     {
         if (!_hasCollided && followMouse)
-        {
-            MoveToMousePosition();
-        }
+            ApplyMouseDelta();
     }
 
-    private void MoveToMousePosition()
+    /// <summary>
+    /// Applies movement from screen-space mouse delta so the triangle stays under the click
+    /// until the pointer actually moves (no snap to absolute mouse world position).
+    /// </summary>
+    private void ApplyMouseDelta()
     {
         var cam = Camera.main;
         if (cam == null) return;
 
-        Vector3 mouseScreen = Input.mousePosition;
-
-        // Distance from camera to this object so ScreenToWorldPoint works correctly in 2D.
         float depth = Mathf.Abs(cam.transform.position.z - transform.position.z);
-        mouseScreen.z = depth;
+        Vector3 current = Input.mousePosition;
 
-        Vector3 worldPos = cam.ScreenToWorldPoint(mouseScreen);
-        worldPos.z = transform.position.z;
+        Vector3 curWorld = cam.ScreenToWorldPoint(new Vector3(current.x, current.y, depth));
+        Vector3 lastWorld = cam.ScreenToWorldPoint(new Vector3(_lastMouseScreen.x, _lastMouseScreen.y, depth));
 
-        transform.position = worldPos;
+        Vector3 delta = curWorld - lastWorld;
+        _lastMouseScreen = current;
+
+        Vector3 pos = transform.position;
+        pos.x += delta.x;
+        pos.y += delta.y;
+        transform.position = pos;
     }
 
     private bool IsLiveCellCollider(Collider2D col)
@@ -125,7 +146,9 @@ public class CursorController : MonoBehaviour
 
         // Begin following the mouse and start the simulation.
         followMouse = true;
+        _lastMouseScreen = Input.mousePosition;
         Cursor.visible = false;
+        _collider.points = _playColliderPoints;
 
         if (simulation != null)
             simulation.StartSimulation();

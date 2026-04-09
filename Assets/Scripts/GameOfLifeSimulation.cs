@@ -405,7 +405,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         StopSimulation();
 
         // Small pause before the wipe.
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.8f);
 
         // Hide collectibles so they don't render on top of the transition.
         SetCollectiblesVisible(false);
@@ -421,7 +421,7 @@ public class GameOfLifeSimulation : MonoBehaviour
                     if (cellView != null)
                         cellView.SetColorOnly(Color.black);
                 }
-                yield return new WaitForSeconds(0.03f);
+                yield return new WaitForSeconds(0.01f);
             }
         }
 
@@ -450,7 +450,7 @@ public class GameOfLifeSimulation : MonoBehaviour
                     if (cellView != null)
                         cellView.SetAlive(alive, aliveColor, deadColor);
                 }
-                yield return new WaitForSeconds(0.03f);
+                yield return new WaitForSeconds(0.01f);
             }
         }
 
@@ -468,7 +468,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         StopSimulation();
 
         // Small pause before the wipe.
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.8f);
 
         // Hide collectibles during the transition.
         SetCollectiblesVisible(false);
@@ -484,7 +484,7 @@ public class GameOfLifeSimulation : MonoBehaviour
                     if (cellView != null)
                         cellView.SetColorOnly(Color.black);
                 }
-                yield return new WaitForSeconds(0.03f);
+                yield return new WaitForSeconds(0.01f);
             }
         }
 
@@ -513,7 +513,7 @@ public class GameOfLifeSimulation : MonoBehaviour
                     if (cellView != null)
                         cellView.SetAlive(alive, aliveColor, deadColor);
                 }
-                yield return new WaitForSeconds(0.03f);
+                yield return new WaitForSeconds(0.01f);
             }
         }
 
