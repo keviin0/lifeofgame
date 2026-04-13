@@ -1,24 +1,25 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// After the level starts, moves the sprite by the mouse's screen delta each frame
-/// (converted to world space) so it does not snap to the cursor on click.
-/// Stops when it collides with a live cell. Before start, placed at cursor start and clicked to begin.
-/// Before the level starts, it can be placed at a \"cursor start\" cell and
-/// clicked to begin the simulation.
-/// Requires a 2D collider and a Rigidbody2D on this object.
+/// Mouse-delta movement after the level starts. Click at cursor start to begin.
+/// Easy mode: first live hit — 0.5s real-time pause (sim + cursor), sprite flashes at impact + OS cursor visible;
+/// then 0.5s iframes + flashing while playing. Timer keeps running (no timeScale pause).
+/// Hard mode: 1 life.
 /// </summary>
-[RequireComponent(typeof(Collider2D), typeof(Rigidbody2D))]
+[RequireComponent(typeof(PolygonCollider2D), typeof(Rigidbody2D))]
 public class CursorController : MonoBehaviour
 {
     [Header("Behavior")]
-    [Tooltip("If true, the sprite follows the mouse (used after start).")]
     [SerializeField] private bool followMouse = true;
 
-    [Tooltip("Simulation to start when this sprite is clicked at the beginning of a level.")]
     [SerializeField] private GameOfLifeSimulation simulation;
     [SerializeField] private Vector2[] _clickColliderPoints;
     [SerializeField] private Vector2[] _playColliderPoints;
+
+    [Header("Invulnerability (easy mode)")]
+    [SerializeField] private float iframeFlashInterval = 0.08f;
+
     private LevelManager _levelManager;
 
     private bool _hasCollided;
@@ -26,6 +27,13 @@ public class CursorController : MonoBehaviour
     private Vector3 _lastMouseScreen;
     private Rigidbody2D _rb;
     private PolygonCollider2D _collider;
+    private SpriteRenderer _spriteRenderer;
+    private Color _spriteBaseColor;
+    private int _livesRemaining;
+    private float _invulnerableUntil;
+    private Coroutine _flashRoutine;
+    private Coroutine _easyHitRoutine;
+    private bool _inEasyHitRecovery;
 
     private void Awake()
     {
@@ -34,17 +42,49 @@ public class CursorController : MonoBehaviour
         _rb.useFullKinematicContacts = true;
 
         _collider = GetComponent<PolygonCollider2D>();
-        if (_levelManager == null)
-            _levelManager = FindFirstObjectByType<LevelManager>();
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        if (_spriteRenderer != null)
+            _spriteBaseColor = _spriteRenderer.color;
+
+        _levelManager = FindFirstObjectByType<LevelManager>();
         if (simulation == null)
             simulation = FindFirstObjectByType<GameOfLifeSimulation>();
 
-        _levelManager.OnLevelLoaded += OnLevelLoaded;
+        if (_levelManager != null)
+            _levelManager.OnLevelLoaded += OnLevelLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (_levelManager != null)
+            _levelManager.OnLevelLoaded -= OnLevelLoaded;
     }
 
     private void OnLevelLoaded(int index)
     {
-        _collider.points = _clickColliderPoints;
+        ApplyColliderPoints(_clickColliderPoints);
+    }
+
+    private void ApplyColliderPoints(Vector2[] points)
+    {
+        if (_collider == null || points == null || points.Length < 3) return;
+        _collider.points = points;
+    }
+
+    /// <summary>Reset lives from difficulty; call when a level loads without PlaceAtStart.</summary>
+    public void PrepareForNewLevel()
+    {
+        StopFlash();
+        if (_easyHitRoutine != null)
+        {
+            StopCoroutine(_easyHitRoutine);
+            _easyHitRoutine = null;
+        }
+        _inEasyHitRecovery = false;
+        _livesRemaining = GameDifficulty.MaxLives;
+        _invulnerableUntil = 0f;
+        if (_spriteRenderer != null)
+            _spriteRenderer.color = _spriteBaseColor;
     }
 
     private void Update()
@@ -53,10 +93,6 @@ public class CursorController : MonoBehaviour
             ApplyMouseDelta();
     }
 
-    /// <summary>
-    /// Applies movement from screen-space mouse delta so the triangle stays under the click
-    /// until the pointer actually moves (no snap to absolute mouse world position).
-    /// </summary>
     private void ApplyMouseDelta()
     {
         var cam = Camera.main;
@@ -77,66 +113,153 @@ public class CursorController : MonoBehaviour
         transform.position = pos;
     }
 
+    private bool IsInvulnerable()
+    {
+        return Time.time < _invulnerableUntil;
+    }
+
     private bool IsLiveCellCollider(Collider2D col)
     {
         if (col == null) return false;
-        // Only stop when hitting a GameOfLifeCellView collider (live cells enable their collider)
-        // while the simulation is actually running.
+        if (_inEasyHitRecovery) return false;
         if (simulation != null && !simulation.IsRunning) return false;
+        if (IsInvulnerable()) return false;
         return col.GetComponent<GameOfLifeCellView>() != null && col.enabled;
     }
 
-    private void HandleCollisionStop()
+    private void TryHitLiveCell(Vector2 hitWorldPosition)
+    {
+        if (_livesRemaining > 1 && !_inEasyHitRecovery)
+        {
+            _livesRemaining--;
+            if (_flashRoutine != null)
+                StopCoroutine(_flashRoutine);
+            if (_easyHitRoutine != null)
+                StopCoroutine(_easyHitRoutine);
+            _easyHitRoutine = StartCoroutine(EasyHitRecoveryRoutine(hitWorldPosition));
+            return;
+        }
+
+        HandleDeath();
+    }
+
+    private IEnumerator EasyHitRecoveryRoutine(Vector2 hitWorld)
+    {
+        _inEasyHitRecovery = true;
+        if (simulation != null)
+            simulation.StopSimulation();
+
+        followMouse = false;
+
+        float z = transform.position.z;
+        transform.position = new Vector3(hitWorld.x, hitWorld.y, z);
+
+        float pause = GameDifficulty.EasyHitPauseSeconds;
+        float elapsed = 0f;
+        while (elapsed < pause)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            if (_spriteRenderer != null)
+            {
+                float pulse = Mathf.Sin(elapsed * 30f) * 0.5f + 0.5f;
+                var c = _spriteBaseColor;
+                c.a = Mathf.Lerp(0.2f, 1f, pulse);
+                _spriteRenderer.color = c;
+            }
+            yield return null;
+        }
+
+        if (_spriteRenderer != null)
+            _spriteRenderer.color = _spriteBaseColor;
+
+        if (simulation != null)
+            simulation.ResumeSimulationAfterHit();
+
+        _invulnerableUntil = Time.time + GameDifficulty.EasyHitIframesAfterPauseSeconds;
+        followMouse = true;
+        _lastMouseScreen = Input.mousePosition;
+        Cursor.visible = false;
+
+        _flashRoutine = StartCoroutine(FlashWhileInvulnerable());
+
+        _easyHitRoutine = null;
+        _inEasyHitRecovery = false;
+    }
+
+    private IEnumerator FlashWhileInvulnerable()
+    {
+        var sr = _spriteRenderer;
+        if (sr == null) yield break;
+
+        while (Time.time < _invulnerableUntil)
+        {
+            var c = sr.color;
+            c.a = c.a > 0.5f ? 0.2f : 1f;
+            sr.color = c;
+            yield return new WaitForSeconds(iframeFlashInterval);
+        }
+
+        sr.color = _spriteBaseColor;
+        _flashRoutine = null;
+    }
+
+    private void StopFlash()
+    {
+        if (_flashRoutine != null)
+        {
+            StopCoroutine(_flashRoutine);
+            _flashRoutine = null;
+        }
+        if (_spriteRenderer != null)
+            _spriteRenderer.color = _spriteBaseColor;
+    }
+
+    private void HandleDeath()
     {
         if (_hasCollided) return;
         _hasCollided = true;
+        StopFlash();
 
-        // Stop following the mouse.
         followMouse = false;
-
-        // Show the OS cursor and ensure this sprite is visible.
         Cursor.visible = true;
 
-        var renderer = GetComponent<SpriteRenderer>();
-        if (renderer != null)
-        {
-            renderer.enabled = true;
-        }
+        if (_spriteRenderer != null)
+            _spriteRenderer.enabled = true;
 
-        // Trigger a death transition + reload on the simulation.
         if (simulation != null)
             simulation.OnPlayerDied();
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (IsLiveCellCollider(collision.collider))
-            HandleCollisionStop();
+        if (!IsLiveCellCollider(collision.collider)) return;
+        Vector2 hit = collision.contactCount > 0
+            ? collision.GetContact(0).point
+            : collision.collider.ClosestPoint(transform.position);
+        TryHitLiveCell(hit);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (IsLiveCellCollider(other))
-            HandleCollisionStop();
+        if (!IsLiveCellCollider(other)) return;
+        Vector2 hit = other.ClosestPoint(transform.position);
+        TryHitLiveCell(hit);
     }
 
-    /// <summary>
-    /// Place the cursor sprite at a starting world position and wait for a click
-    /// to begin the level/simulation.
-    /// </summary>
     public void PlaceAtStart(Vector2 worldPosition)
     {
         _hasCollided = false;
         _waitingForStart = true;
         followMouse = false;
 
+        PrepareForNewLevel();
+
         transform.position = new Vector3(worldPosition.x, worldPosition.y, transform.position.z);
 
         Cursor.visible = true;
 
-        var renderer = GetComponent<SpriteRenderer>();
-        if (renderer != null)
-            renderer.enabled = true;
+        if (_spriteRenderer != null)
+            _spriteRenderer.enabled = true;
     }
 
     private void OnMouseDown()
@@ -144,14 +267,12 @@ public class CursorController : MonoBehaviour
         if (!_waitingForStart) return;
         _waitingForStart = false;
 
-        // Begin following the mouse and start the simulation.
         followMouse = true;
         _lastMouseScreen = Input.mousePosition;
         Cursor.visible = false;
-        _collider.points = _playColliderPoints;
+        ApplyColliderPoints(_playColliderPoints);
 
         if (simulation != null)
             simulation.StartSimulation();
     }
 }
-

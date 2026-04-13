@@ -25,6 +25,12 @@ public class GameOfLifeLevelPreset : ScriptableObject
     [Tooltip("Optional grid positions where the cursor/player can start. Not yet used by gameplay, but editable in the level grid.")]
     public List<Vector2Int> cursorStartCells = new List<Vector2Int>();
 
+    [Tooltip("Main menu: easy-mode coin (2 lives). Not part of the Life simulation grid. Not included in URL/Base64 encoding.")]
+    public List<Vector2Int> easyModeCoinCells = new List<Vector2Int>();
+
+    [Tooltip("Main menu: hard-mode coin (1 life). Not part of the Life simulation grid. Not included in URL/Base64 encoding.")]
+    public List<Vector2Int> hardModeCoinCells = new List<Vector2Int>();
+
     /// <summary>
     /// Optional: set initial state from a simple pattern string.
     /// '1' or '#' = alive, anything else = dead. One row per line.
@@ -182,6 +188,8 @@ public class GameOfLifeLevelPreset : ScriptableObject
         initialLiveCells.Clear();
         collectibleCells.Clear();
         cursorStartCells.Clear();
+        easyModeCoinCells.Clear();
+        hardModeCoinCells.Clear();
 
         int cellIndex = 0;
         for (int row = 0; row < height; row++)
@@ -262,5 +270,15 @@ public class GameOfLifeLevelPreset : ScriptableObject
     public IReadOnlyList<Vector2Int> GetCursorStartCells()
     {
         return cursorStartCells;
+    }
+
+    public IReadOnlyList<Vector2Int> GetEasyModeCoinCells()
+    {
+        return easyModeCoinCells;
+    }
+
+    public IReadOnlyList<Vector2Int> GetHardModeCoinCells()
+    {
+        return hardModeCoinCells;
     }
 }

@@ -37,6 +37,10 @@ public class GameOfLifeSimulation : MonoBehaviour
     [Tooltip("Optional cursor controller that will be positioned at the level's cursor start cell, if defined.")]
     [SerializeField] private CursorController cursorController;
 
+    [Header("Main menu")]
+    [Tooltip("After picking an easy/hard coin, load the next level in LevelManager.")]
+    [SerializeField] private bool difficultyCoinsLoadNextLevel = true;
+
     // State
     private float cellSize = 0.5f;
     private int _width;
@@ -46,6 +50,7 @@ public class GameOfLifeSimulation : MonoBehaviour
     private float _stepTimer;
     private GameOfLifeCellView[,] _cells;
     private System.Collections.Generic.List<GameObject> _spawnedCollectibles = new System.Collections.Generic.List<GameObject>();
+    private System.Collections.Generic.List<GameObject> _spawnedDifficultyCoins = new System.Collections.Generic.List<GameObject>();
     private bool _initialized;
     private bool _running;
     private bool _inTransition;
@@ -111,6 +116,16 @@ public class GameOfLifeSimulation : MonoBehaviour
     public void StopSimulation()
     {
         _running = false;
+    }
+
+    /// <summary>
+    /// Resume stepping after an easy-mode hit pause. Does not fire <see cref="OnSimulationStarted"/> (timer UI keeps running).
+    /// </summary>
+    public void ResumeSimulationAfterHit()
+    {
+        if (!_initialized) return;
+        _running = true;
+        _stepTimer = stepInterval;
     }
 
     /// <summary>
@@ -185,15 +200,34 @@ public class GameOfLifeSimulation : MonoBehaviour
 
     private void Start()
     {
+        // LevelManager also loads in its Start(); avoid double LoadLevel and race on script order.
+        var lm = FindFirstObjectByType<LevelManager>();
+        if (lm != null && lm.LevelCount > 0)
+            StartCoroutine(DeferredBootstrapWithLevelManager());
+        else
+            BootstrapLoadAndMaybeAutoStart();
+    }
+
+    /// <summary>
+    /// Load from this component's preset when no LevelManager drives levels.
+    /// </summary>
+    private void BootstrapLoadAndMaybeAutoStart()
+    {
         if (levelPreset != null)
             LoadLevel(levelPreset);
         else
             LoadLevel(GetOrCreateDefaultPreset());
 
-        // If autoStart is enabled, or no cursorController is wired,
-        // start the simulation immediately. Otherwise we wait for the
-        // cursor to call StartSimulation() after the player clicks it.
         if (autoStart || cursorController == null)
+            StartSimulation();
+    }
+
+    private IEnumerator DeferredBootstrapWithLevelManager()
+    {
+        yield return null;
+        if (!_initialized)
+            BootstrapLoadAndMaybeAutoStart();
+        else if (autoStart || cursorController == null)
             StartSimulation();
     }
 
@@ -256,8 +290,16 @@ public class GameOfLifeSimulation : MonoBehaviour
 
         BuildCellViews();
         SpawnCollectibles(preset);
+        SpawnDifficultyCoins(preset);
         PositionCursorStart(preset);
         FitCameraToGrid();
+
+        if (cursorController != null)
+        {
+            var starts = preset.GetCursorStartCells();
+            if (starts == null || starts.Count == 0)
+                cursorController.PrepareForNewLevel();
+        }
 
         if (startBlack && _cells != null)
         {
@@ -271,8 +313,7 @@ public class GameOfLifeSimulation : MonoBehaviour
                 }
             }
 
-            // Hide collectibles until the new level finishes revealing.
-            SetCollectiblesVisible(false);
+            SetOverlayPickupsVisible(false);
         }
 
         _stepTimer = stepInterval;
@@ -303,6 +344,16 @@ public class GameOfLifeSimulation : MonoBehaviour
                     Destroy(_spawnedCollectibles[i]);
             }
             _spawnedCollectibles.Clear();
+        }
+
+        if (_spawnedDifficultyCoins != null)
+        {
+            for (int i = 0; i < _spawnedDifficultyCoins.Count; i++)
+            {
+                if (_spawnedDifficultyCoins[i] != null)
+                    Destroy(_spawnedDifficultyCoins[i]);
+            }
+            _spawnedDifficultyCoins.Clear();
         }
 
         _initialized = false;
@@ -349,9 +400,8 @@ public class GameOfLifeSimulation : MonoBehaviour
     private void SpawnCollectibles(GameOfLifeLevelPreset preset)
     {
         var positions = preset.GetCollectibleCells();
-        if (positions == null) return;
-
-        _remainingCollectibles = positions.Count;
+        _remainingCollectibles = positions != null ? positions.Count : 0;
+        if (positions == null || positions.Count == 0) return;
 
         Sprite sprite = CreateSquareSprite();
 
@@ -384,16 +434,76 @@ public class GameOfLifeSimulation : MonoBehaviour
         }
     }
 
-    private void SetCollectiblesVisible(bool visible)
+    private void SpawnDifficultyCoins(GameOfLifeLevelPreset preset)
     {
-        if (_spawnedCollectibles == null) return;
-        for (int i = 0; i < _spawnedCollectibles.Count; i++)
+        Sprite sprite = CreateSquareSprite();
+
+        void SpawnOne(Vector2Int cell, DifficultySelectCell.DifficultyChoice choice, Color color)
         {
-            var go = _spawnedCollectibles[i];
-            if (go == null) continue;
-            var sr = go.GetComponent<SpriteRenderer>();
-            if (sr != null)
-                sr.enabled = visible;
+            if (cell.x < 0 || cell.x >= _width || cell.y < 0 || cell.y >= _height)
+                return;
+
+            Vector2 worldPos = CellToWorld(cell.x, cell.y);
+            GameObject go = new GameObject($"DifficultyCoin_{choice}_{cell.x}_{cell.y}");
+            go.transform.SetParent(transform);
+            go.transform.localPosition = new Vector3(worldPos.x, worldPos.y, 0f);
+            go.transform.localScale = new Vector3(cellSize, cellSize, 1f);
+
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.color = color;
+            sr.sortingOrder = 1;
+            if (_inTransition)
+                sr.enabled = false;
+
+            var col = go.AddComponent<CircleCollider2D>();
+            col.isTrigger = true;
+
+            var d = go.AddComponent<DifficultySelectCell>();
+            d.Init(choice, difficultyCoinsLoadNextLevel);
+
+            _spawnedDifficultyCoins.Add(go);
+        }
+
+        var easy = preset.GetEasyModeCoinCells();
+        if (easy != null)
+        {
+            foreach (var c in easy)
+                SpawnOne(c, DifficultySelectCell.DifficultyChoice.Easy, new Color(1.0f, 0.85f, 0.2f));
+        }
+
+        var hard = preset.GetHardModeCoinCells();
+        if (hard != null)
+        {
+            foreach (var c in hard)
+                SpawnOne(c, DifficultySelectCell.DifficultyChoice.Hard, new Color(1.0f, 0.85f, 0.2f));
+        }
+    }
+
+    private void SetOverlayPickupsVisible(bool visible)
+    {
+        if (_spawnedCollectibles != null)
+        {
+            for (int i = 0; i < _spawnedCollectibles.Count; i++)
+            {
+                var go = _spawnedCollectibles[i];
+                if (go == null) continue;
+                var sr = go.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.enabled = visible;
+            }
+        }
+
+        if (_spawnedDifficultyCoins != null)
+        {
+            for (int i = 0; i < _spawnedDifficultyCoins.Count; i++)
+            {
+                var go = _spawnedDifficultyCoins[i];
+                if (go == null) continue;
+                var sr = go.GetComponent<SpriteRenderer>();
+                if (sr != null)
+                    sr.enabled = visible;
+            }
         }
     }
 
@@ -407,8 +517,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         // Small pause before the wipe.
         yield return new WaitForSeconds(0.8f);
 
-        // Hide collectibles so they don't render on top of the transition.
-        SetCollectiblesVisible(false);
+        SetOverlayPickupsVisible(false);
 
         if (_cells != null)
         {
@@ -454,8 +563,7 @@ public class GameOfLifeSimulation : MonoBehaviour
             }
         }
 
-        // Show collectibles again now that the new level is fully revealed.
-        SetCollectiblesVisible(true);
+        SetOverlayPickupsVisible(true);
 
         _inTransition = false;
     }
@@ -470,8 +578,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         // Small pause before the wipe.
         yield return new WaitForSeconds(0.8f);
 
-        // Hide collectibles during the transition.
-        SetCollectiblesVisible(false);
+        SetOverlayPickupsVisible(false);
 
         if (_cells != null)
         {
@@ -517,8 +624,7 @@ public class GameOfLifeSimulation : MonoBehaviour
             }
         }
 
-        // Show collectibles again now that the level is fully revealed.
-        SetCollectiblesVisible(true);
+        SetOverlayPickupsVisible(true);
 
         _inTransition = false;
     }
