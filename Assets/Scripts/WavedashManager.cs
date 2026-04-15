@@ -12,13 +12,11 @@ public class WavedashManager : MonoBehaviour
             { "debug", true }
         });
 
-        if (Wavedash.SDK.IsReady())
+        
+        var user = Wavedash.SDK.GetUser();
+        if (user != null)
         {
-            var user = Wavedash.SDK.GetUser();
-            if (user != null)
-            {
-                Debug.Log($"Playing as: {user["username"]}");
-            }
+            Debug.Log($"Playing as: {user["username"]}");
         }
     }
 

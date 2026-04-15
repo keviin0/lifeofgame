@@ -8,16 +8,6 @@ public class LeaderboardUI : MonoBehaviour
         
     }
 
-    public void updateLeaderboard()
-    {
-        //submit current 
-    }
-
-    public void drawLeaderboard()
-    {
-
-    }
-
     // Update is called once per frame
     void Update()
     {
