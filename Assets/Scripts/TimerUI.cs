@@ -24,9 +24,9 @@ public class TimerUI : MonoBehaviour
     [SerializeField] private string totalTimerPrefix = "Total Time: ";
     [SerializeField] private string levelTimerPrefix = "Current Level: ";
 
-    private float totalTime;
+    public float TotalTime;
     private float levelTime;
-    /// <summary>How much of <see cref="levelTime"/> has already been added to <see cref="totalTime"/> for this level (via death and/or complete).</summary>
+    /// <summary>How much of <see cref="levelTime"/> has already been added to <see cref="TotalTime"/> for this level (via death and/or complete).</summary>
     private float levelTimeAlreadyInTotal;
     private bool levelTimerRunning;
     private LevelManager levelManager;
@@ -96,7 +96,7 @@ public class TimerUI : MonoBehaviour
     {
         float delta = levelTime - levelTimeAlreadyInTotal;
         if (delta > 0f)
-            totalTime += delta;
+            TotalTime += delta;
         levelTimeAlreadyInTotal = levelTime;
     }
 
@@ -109,7 +109,7 @@ public class TimerUI : MonoBehaviour
 
         if (levelIndex == 0)
         {
-            totalTime = 0f;
+            TotalTime = 0f;
             levelTime = 0f;
             levelTimeAlreadyInTotal = 0f;
         }
@@ -119,7 +119,7 @@ public class TimerUI : MonoBehaviour
     {
         if (totalTimerText != null)
         {
-            var totalSpan = System.TimeSpan.FromSeconds(totalTime);
+            var totalSpan = System.TimeSpan.FromSeconds(TotalTime);
             totalTimerText.text = totalTimerPrefix + "\n" + totalSpan.ToString(TIME_FORMAT);
         }
 

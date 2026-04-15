@@ -43,11 +43,19 @@ public class DifficultySelectCell : MonoBehaviour
         else
             GameDifficulty.SetHardMode();
 
+        GameDifficulty.BeginGameplayRunFromMenuPick();
+
         if (loadNextLevelOnPick)
         {
-            var lm = FindFirstObjectByType<LevelManager>();
-            if (lm != null)
-                lm.LoadNextLevel();
+            var sim = FindFirstObjectByType<GameOfLifeSimulation>();
+            if (sim != null)
+                sim.RequestAdvanceToNextLevelWithTransition();
+            else
+            {
+                var lm = FindFirstObjectByType<LevelManager>();
+                if (lm != null)
+                    lm.LoadNextLevel();
+            }
         }
 
         Destroy(gameObject);

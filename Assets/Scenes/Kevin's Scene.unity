@@ -920,7 +920,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: -29.64, y: -395}
+  m_AnchoredPosition: {x: -29.639893, y: -395}
   m_SizeDelta: {x: 350, y: 120}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &1495270237
@@ -1413,6 +1413,7 @@ MonoBehaviour:
   levelTimerText: {fileID: 244677889}
   totalTimerPrefix: 'Total Time:'
   levelTimerPrefix: 'Current Level:'
+  TotalTime: 0
 --- !u!1 &1803707861
 GameObject:
   m_ObjectHideFlags: 0
@@ -1447,12 +1448,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d7897cbc29a0d4f3eaf4e6b457e9db18, type: 2}
   - {fileID: 11400000, guid: 1ca207f70d6324cdfa606a2c7f389eb3, type: 2}
   - {fileID: 11400000, guid: f84d975427de14f6fa578b750586670a, type: 2}
-  - {fileID: 11400000, guid: bc22521ab2d70e04d9f031703ad2dd90, type: 2}
   - {fileID: 11400000, guid: 57e73c1ad7d224cb2852f3dbb68f09a6, type: 2}
   - {fileID: 11400000, guid: e2a5ad26412306d40976262f7effa8b4, type: 2}
+  - {fileID: 11400000, guid: bc22521ab2d70e04d9f031703ad2dd90, type: 2}
   - {fileID: 11400000, guid: 6640e9e4f25460148a6ac1057bea6c76, type: 2}
   - {fileID: 11400000, guid: 57820851b61844d24a276cb6c6648ab8, type: 2}
   currentLevelIndex: 0
+  timerUI: {fileID: 1802987804}
 --- !u!4 &1803707863
 Transform:
   m_ObjectHideFlags: 0

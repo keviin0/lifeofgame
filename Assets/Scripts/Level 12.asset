@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ab90f4ddd80c4900a78f5383340151c, type: 3}
+  m_Name: Level 12
+  m_EditorClassIdentifier: Assembly-CSharp::GameOfLifeLevelPreset
+  gridWidth: 21
+  gridHeight: 21
+  initialLiveCells:
+  - {x: 7, y: 15}
+  - {x: 8, y: 15}
+  - {x: 9, y: 15}
+  - {x: 10, y: 15}
+  - {x: 11, y: 15}
+  - {x: 12, y: 15}
+  - {x: 13, y: 15}
+  - {x: 14, y: 14}
+  - {x: 14, y: 13}
+  - {x: 14, y: 12}
+  - {x: 13, y: 11}
+  - {x: 13, y: 10}
+  - {x: 13, y: 8}
+  - {x: 6, y: 14}
+  - {x: 6, y: 13}
+  - {x: 6, y: 12}
+  - {x: 5, y: 15}
+  - {x: 5, y: 16}
+  - {x: 2, y: 13}
+  - {x: 3, y: 9}
+  - {x: 4, y: 9}
+  - {x: 5, y: 8}
+  - {x: 15, y: 15}
+  - {x: 15, y: 16}
+  - {x: 6, y: 8}
+  - {x: 7, y: 8}
+  - {x: 7, y: 7}
+  - {x: 13, y: 9}
+  - {x: 13, y: 7}
+  - {x: 12, y: 7}
+  - {x: 12, y: 6}
+  - {x: 12, y: 5}
+  - {x: 12, y: 4}
+  - {x: 13, y: 4}
+  - {x: 14, y: 4}
+  - {x: 14, y: 3}
+  - {x: 15, y: 3}
+  - {x: 16, y: 3}
+  - {x: 16, y: 2}
+  - {x: 16, y: 1}
+  - {x: 15, y: 1}
+  - {x: 14, y: 1}
+  - {x: 13, y: 1}
+  - {x: 12, y: 1}
+  - {x: 11, y: 1}
+  - {x: 10, y: 1}
+  - {x: 9, y: 1}
+  - {x: 8, y: 1}
+  - {x: 7, y: 1}
+  - {x: 6, y: 1}
+  - {x: 6, y: 3}
+  - {x: 6, y: 4}
+  - {x: 7, y: 4}
+  - {x: 7, y: 5}
+  - {x: 8, y: 5}
+  - {x: 8, y: 6}
+  - {x: 9, y: 12}
+  - {x: 10, y: 13}
+  - {x: 10, y: 11}
+  - {x: 10, y: 12}
+  - {x: 10, y: 10}
+  - {x: 9, y: 10}
+  - {x: 11, y: 10}
+  - {x: 5, y: 1}
+  - {x: 14, y: 8}
+  - {x: 15, y: 8}
+  - {x: 16, y: 8}
+  - {x: 16, y: 9}
+  - {x: 17, y: 9}
+  - {x: 17, y: 10}
+  - {x: 17, y: 11}
+  - {x: 18, y: 11}
+  - {x: 18, y: 12}
+  - {x: 18, y: 13}
+  - {x: 18, y: 14}
+  - {x: 18, y: 15}
+  - {x: 16, y: 17}
+  - {x: 17, y: 16}
+  - {x: 17, y: 15}
+  - {x: 4, y: 17}
+  - {x: 3, y: 16}
+  - {x: 3, y: 15}
+  - {x: 7, y: 11}
+  - {x: 7, y: 10}
+  - {x: 7, y: 9}
+  - {x: 2, y: 12}
+  - {x: 2, y: 11}
+  - {x: 2, y: 15}
+  - {x: 2, y: 14}
+  - {x: 3, y: 11}
+  - {x: 3, y: 10}
+  - {x: 8, y: 7}
+  - {x: 4, y: 3}
+  - {x: 4, y: 2}
+  - {x: 4, y: 1}
+  - {x: 5, y: 3}
+  collectibleCells: []
+  cursorStartCells: []
+  easyModeCoinCells: []
+  hardModeCoinCells: []

@@ -1,5 +1,8 @@
 using System;
 using UnityEngine;
+#if UNITY_WEBGL
+using Wavedash;
+#endif
 
 /// <summary>
 /// Holds the list of level presets and drives which level the GameOfLifeSimulation runs.
@@ -13,7 +16,7 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private GameOfLifeLevelPreset[] levels;
     [Tooltip("Current level index (0-based). Used when transitioning.")]
     [SerializeField] private int currentLevelIndex;
-
+    [SerializeField] private TimerUI timerUI;
     /// <summary>
     /// Fired whenever a level is loaded or reloaded. Passes the new level index.
     /// </summary>
@@ -63,6 +66,12 @@ public class LevelManager : MonoBehaviour
     public void LoadNextLevel(bool startBlack = false)
     {
         if (levels == null || levels.Length == 0) return;
+#if UNITY_WEBGL
+        if (currentLevelIndex == levels.Length - 1)
+        {
+            WavedashUtils.GameComplete(GameDifficulty.IsEasyMode, timerUI.TotalTime);
+        }
+#endif
         OnLevelCompleted?.Invoke(currentLevelIndex);
         currentLevelIndex = (currentLevelIndex + 1) % levels.Length;
         LoadLevelByIndex(currentLevelIndex, startBlack);

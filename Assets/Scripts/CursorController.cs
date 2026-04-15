@@ -2,9 +2,9 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Mouse-delta movement after the level starts. Click at cursor start to begin.
-/// Easy mode: first live hit — 0.5s real-time pause (sim + cursor), sprite flashes at impact + OS cursor visible;
-/// then 0.5s iframes + flashing while playing. Timer keeps running (no timeScale pause).
+/// Mouse follows the hardware cursor in world space (exact screen mapping). Click to begin play.
+/// Easy mode: first live hit — pause at impact with pulse; then snap in-game cursor to the mouse,
+/// resume sim, iframes with sprite flash while the OS cursor stays visible and unlocked; then hide and lock again.
 /// Hard mode: 1 life.
 /// </summary>
 [RequireComponent(typeof(PolygonCollider2D), typeof(Rigidbody2D))]
@@ -24,7 +24,6 @@ public class CursorController : MonoBehaviour
 
     private bool _hasCollided;
     private bool _waitingForStart;
-    private Vector3 _lastMouseScreen;
     private Rigidbody2D _rb;
     private PolygonCollider2D _collider;
     private SpriteRenderer _spriteRenderer;
@@ -34,6 +33,7 @@ public class CursorController : MonoBehaviour
     private Coroutine _flashRoutine;
     private Coroutine _easyHitRoutine;
     private bool _inEasyHitRecovery;
+    private bool _isGameStarted;
 
     private void Awake()
     {
@@ -63,6 +63,7 @@ public class CursorController : MonoBehaviour
     private void OnLevelLoaded(int index)
     {
         ApplyColliderPoints(_clickColliderPoints);
+        _isGameStarted = false;
     }
 
     private void ApplyColliderPoints(Vector2[] points)
@@ -90,26 +91,29 @@ public class CursorController : MonoBehaviour
     private void Update()
     {
         if (!_hasCollided && followMouse)
-            ApplyMouseDelta();
+            ApplyMouseWorldPosition();
     }
 
-    private void ApplyMouseDelta()
+    private void OnMouseDown()
+    {
+        if (!_isGameStarted)
+            StartGame();
+    }
+
+    private Vector3 MouseWorldOnPlane()
     {
         var cam = Camera.main;
-        if (cam == null) return;
-
+        if (cam == null) return transform.position;
         float depth = Mathf.Abs(cam.transform.position.z - transform.position.z);
-        Vector3 current = Input.mousePosition;
+        return cam.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, depth));
+    }
 
-        Vector3 curWorld = cam.ScreenToWorldPoint(new Vector3(current.x, current.y, depth));
-        Vector3 lastWorld = cam.ScreenToWorldPoint(new Vector3(_lastMouseScreen.x, _lastMouseScreen.y, depth));
-
-        Vector3 delta = curWorld - lastWorld;
-        _lastMouseScreen = current;
-
+    private void ApplyMouseWorldPosition()
+    {
+        Vector3 w = MouseWorldOnPlane();
         Vector3 pos = transform.position;
-        pos.x += delta.x;
-        pos.y += delta.y;
+        pos.x = w.x;
+        pos.y = w.y;
         transform.position = pos;
     }
 
@@ -154,6 +158,8 @@ public class CursorController : MonoBehaviour
         float z = transform.position.z;
         transform.position = new Vector3(hitWorld.x, hitWorld.y, z);
 
+        Cursor.visible = true;
+
         float pause = GameDifficulty.EasyHitPauseSeconds;
         float elapsed = 0f;
         while (elapsed < pause)
@@ -175,10 +181,14 @@ public class CursorController : MonoBehaviour
         if (simulation != null)
             simulation.ResumeSimulationAfterHit();
 
+        // Snap in-game cursor to the hardware cursor in world space.
+        Vector3 mw = MouseWorldOnPlane();
+        transform.position = new Vector3(mw.x, mw.y, transform.position.z);
+
         _invulnerableUntil = Time.time + GameDifficulty.EasyHitIframesAfterPauseSeconds;
         followMouse = true;
-        _lastMouseScreen = Input.mousePosition;
-        Cursor.visible = false;
+
+        Cursor.visible = true;
 
         _flashRoutine = StartCoroutine(FlashWhileInvulnerable());
 
@@ -201,6 +211,8 @@ public class CursorController : MonoBehaviour
 
         sr.color = _spriteBaseColor;
         _flashRoutine = null;
+
+        Cursor.visible = false;
     }
 
     private void StopFlash()
@@ -212,6 +224,8 @@ public class CursorController : MonoBehaviour
         }
         if (_spriteRenderer != null)
             _spriteRenderer.color = _spriteBaseColor;
+
+        Cursor.visible = false;
     }
 
     private void HandleDeath()
@@ -262,13 +276,14 @@ public class CursorController : MonoBehaviour
             _spriteRenderer.enabled = true;
     }
 
-    private void OnMouseDown()
+    private void StartGame()
     {
         if (!_waitingForStart) return;
         _waitingForStart = false;
+        _isGameStarted = true;
 
         followMouse = true;
-        _lastMouseScreen = Input.mousePosition;
+        ApplyMouseWorldPosition();
         Cursor.visible = false;
         ApplyColliderPoints(_playColliderPoints);
 

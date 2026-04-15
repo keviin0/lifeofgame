@@ -140,6 +140,7 @@ public class GameOfLifeSimulation : MonoBehaviour
     public void OnPlayerDied()
     {
         if (_inTransition) return;
+        GameDifficulty.NotifyRunPlayerDied();
         OnPlayerDeath?.Invoke();
         StartCoroutine(LevelDeathRoutine());
     }
@@ -156,8 +157,19 @@ public class GameOfLifeSimulation : MonoBehaviour
         if (_remainingCollectibles == 0)
         {
             OnObjectiveCompleted?.Invoke();
-            StartCoroutine(LevelCompleteRoutine());
+            RequestAdvanceToNextLevelWithTransition();
         }
+    }
+
+    /// <summary>
+    /// Same row wipe → next level (black build) → reveal as when the last collectible is taken.
+    /// Used for difficulty-coin advance so the menu gets the same transition as completing a level.
+    /// </summary>
+    public void RequestAdvanceToNextLevelWithTransition()
+    {
+        if (_inTransition) return;
+        _inTransition = true;
+        StartCoroutine(LevelAdvanceTransitionCoroutine());
     }
 
     /// <summary>
@@ -358,7 +370,8 @@ public class GameOfLifeSimulation : MonoBehaviour
 
         _initialized = false;
         _running = false;
-        _inTransition = false;
+        // Do not clear _inTransition here — LoadLevel runs mid wipe/reveal; clearing it allowed a second
+        // transition (e.g. collectible triggers while sprites were hidden) and broke later level advances.
         _remainingCollectibles = 0;
     }
 
@@ -491,6 +504,9 @@ public class GameOfLifeSimulation : MonoBehaviour
                 var sr = go.GetComponent<SpriteRenderer>();
                 if (sr != null)
                     sr.enabled = visible;
+                var col = go.GetComponent<Collider2D>();
+                if (col != null)
+                    col.enabled = visible;
             }
         }
 
@@ -503,19 +519,19 @@ public class GameOfLifeSimulation : MonoBehaviour
                 var sr = go.GetComponent<SpriteRenderer>();
                 if (sr != null)
                     sr.enabled = visible;
+                var col = go.GetComponent<Collider2D>();
+                if (col != null)
+                    col.enabled = visible;
             }
         }
     }
 
-    private IEnumerator LevelCompleteRoutine()
+    private IEnumerator LevelAdvanceTransitionCoroutine()
     {
-        if (_inTransition) yield break;
-        _inTransition = true;
-
         StopSimulation();
 
         // Small pause before the wipe.
-        yield return new WaitForSeconds(0.8f);
+        yield return new WaitForSeconds(0.5f);
 
         SetOverlayPickupsVisible(false);
 
