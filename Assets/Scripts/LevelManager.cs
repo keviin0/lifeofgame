@@ -69,7 +69,8 @@ public class LevelManager : MonoBehaviour
 #if UNITY_WEBGL
         if (currentLevelIndex == levels.Length - 1)
         {
-            WavedashUtils.GameComplete(GameDifficulty.IsEasyMode, timerUI.TotalTime);
+            int milliseconds = (int)(timerUI.TotalTime * 1000);
+            WavedashUtils.GameComplete(GameDifficulty.IsEasyMode, milliseconds);
         }
 #endif
         OnLevelCompleted?.Invoke(currentLevelIndex);
