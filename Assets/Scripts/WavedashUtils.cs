@@ -32,16 +32,18 @@ public static class WavedashUtils
         Wavedash.SDK.SetAchievement(achievementName);
     }
 
-    private async static void SetModeLeaderboard(bool isEasyMode, int time)
+    private async static Task UploadToLeaderboard(string leaderboardName, int time)
     {
         var leaderboard = await Wavedash.SDK.GetOrCreateLeaderboard(
-            isEasyMode ? EASY_COMPLETION_TIMES_LEADERBOARD_NAME : HARD_COMPLETION_TIMES_LEADERBOARD_NAME,
+            leaderboardName,
             WavedashConstants.LeaderboardSortMethod.ASCENDING,
             WavedashConstants.LeaderboardDisplayType.TIME_SECONDS
         );
 
+        if (leaderboard == null) return;
+
         var leaderboardId = leaderboard["id"].ToString();
-        
+
         var result = await Wavedash.SDK.UploadLeaderboardScore(
             leaderboardId,
             time,
@@ -49,8 +51,18 @@ public static class WavedashUtils
         );
 
         if (result != null)
-            Debug.Log($"Rank: {result["globalRank"]}");
+            Debug.Log($"Rank on {leaderboardName}: {result["globalRank"]}");
+    }
 
+    private async static void SetModeLeaderboard(bool isEasyMode, int time)
+    {
+        await UploadToLeaderboard(GetTotalLeaderboardName(isEasyMode), time);
+        OnLeaderboardUpdated?.Invoke(isEasyMode);
+    }
+
+    private async static void SetLevelLeaderboard(bool isEasyMode, string leaderboardKey, int time)
+    {
+        await UploadToLeaderboard(GetLevelLeaderboardName(isEasyMode, leaderboardKey), time);
         OnLeaderboardUpdated?.Invoke(isEasyMode);
     }
 
@@ -72,13 +84,34 @@ public static class WavedashUtils
         }
     }
 
-    private static string GetLeaderboardName(bool isEasyMode) =>
+    public static void LevelComplete(bool isEasyMode, string leaderboardKey, int time)
+    {
+        if (string.IsNullOrWhiteSpace(leaderboardKey))
+        {
+            Debug.LogWarning("LevelComplete called with empty leaderboardKey; skipping upload.");
+            return;
+        }
+        SetLevelLeaderboard(isEasyMode, leaderboardKey, time);
+    }
+
+    private static string GetTotalLeaderboardName(bool isEasyMode) =>
         isEasyMode ? EASY_COMPLETION_TIMES_LEADERBOARD_NAME : HARD_COMPLETION_TIMES_LEADERBOARD_NAME;
 
-    public async static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
-        GetLeaderboardData(bool isEasyMode, int limit)
+    private static string GetLevelLeaderboardName(bool isEasyMode, string leaderboardKey) =>
+        $"{(isEasyMode ? "easy" : "hard")}_level_{leaderboardKey}_completion_times";
+
+    public static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
+        GetTotalLeaderboardData(bool isEasyMode, int limit) =>
+        GetLeaderboardDataByName(GetTotalLeaderboardName(isEasyMode), limit);
+
+    public static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
+        GetLevelLeaderboardData(bool isEasyMode, string leaderboardKey, int limit) =>
+        GetLeaderboardDataByName(GetLevelLeaderboardName(isEasyMode, leaderboardKey), limit);
+
+    private async static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
+        GetLeaderboardDataByName(string leaderboardName, int limit)
     {
-        var leaderboard = await Wavedash.SDK.GetLeaderboard(GetLeaderboardName(isEasyMode));
+        var leaderboard = await Wavedash.SDK.GetLeaderboard(leaderboardName);
         if (leaderboard == null) return (null, null);
 
         var leaderboardId = leaderboard["id"].ToString();

@@ -10,6 +10,35 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "New Level", menuName = "Game Of Life/Level Preset")]
 public class GameOfLifeLevelPreset : ScriptableObject
 {
+    [Tooltip("Stable identifier used for this level's leaderboard name. Keep this fixed even if you reorder levels. If left blank, falls back to a sanitized version of the asset name.")]
+    [SerializeField] private string leaderboardKey;
+
+    /// <summary>
+    /// Stable key used to build this level's leaderboard name.
+    /// Falls back to a sanitized asset name if <c>leaderboardKey</c> is not set.
+    /// </summary>
+    public string LeaderboardKey
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(leaderboardKey)) return leaderboardKey.Trim();
+            return SanitizeKey(name);
+        }
+    }
+
+    private static string SanitizeKey(string raw)
+    {
+        if (string.IsNullOrEmpty(raw)) return "unnamed";
+        var sb = new System.Text.StringBuilder(raw.Length);
+        foreach (char c in raw)
+        {
+            if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+            else if (c == ' ' || c == '-' || c == '_') sb.Append('_');
+        }
+        var result = sb.ToString().Trim('_');
+        return string.IsNullOrEmpty(result) ? "unnamed" : result;
+    }
+
     [Tooltip("Grid width (number of cells)")]
     public int gridWidth = 16;
 

@@ -26,6 +26,7 @@ public class GameOfLifeLevelPresetEditor : Editor
         SerializedObject so = serializedObject;
         so.Update();
 
+        SerializedProperty leaderboardKeyProp = so.FindProperty("leaderboardKey");
         SerializedProperty widthProp = so.FindProperty("gridWidth");
         SerializedProperty heightProp = so.FindProperty("gridHeight");
         SerializedProperty liveListProp = so.FindProperty("initialLiveCells");
@@ -33,6 +34,14 @@ public class GameOfLifeLevelPresetEditor : Editor
         SerializedProperty cursorStartListProp = so.FindProperty("cursorStartCells");
         SerializedProperty easyCoinListProp = so.FindProperty("easyModeCoinCells");
         SerializedProperty hardCoinListProp = so.FindProperty("hardModeCoinCells");
+
+        if (leaderboardKeyProp != null)
+        {
+            EditorGUILayout.PropertyField(leaderboardKeyProp);
+            var preset = (GameOfLifeLevelPreset)target;
+            EditorGUILayout.LabelField("Resolved key", preset.LeaderboardKey, EditorStyles.miniLabel);
+            EditorGUILayout.Space(4);
+        }
 
         EditorGUILayout.PropertyField(widthProp);
         EditorGUILayout.PropertyField(heightProp);

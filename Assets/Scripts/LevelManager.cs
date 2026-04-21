@@ -1,8 +1,5 @@
 using System;
 using UnityEngine;
-#if UNITY_WEBGL
-using Wavedash;
-#endif
 
 /// <summary>
 /// Holds the list of level presets and drives which level the GameOfLifeSimulation runs.
@@ -16,7 +13,8 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private GameOfLifeLevelPreset[] levels;
     [Tooltip("Current level index (0-based). Used when transitioning.")]
     [SerializeField] private int currentLevelIndex;
-    [SerializeField] private TimerUI timerUI;
+    [Tooltip("Levels with index below this are treated as menu/intro and are excluded from the run timer and intermission.")]
+    [SerializeField] private int firstPlayableLevelIndex = 1;
     /// <summary>
     /// Fired whenever a level is loaded or reloaded. Passes the new level index.
     /// </summary>
@@ -66,13 +64,6 @@ public class LevelManager : MonoBehaviour
     public void LoadNextLevel(bool startBlack = false)
     {
         if (levels == null || levels.Length == 0) return;
-#if UNITY_WEBGL
-        if (currentLevelIndex == levels.Length - 1)
-        {
-            int milliseconds = (int)(timerUI.TotalTime * 1000);
-            WavedashUtils.GameComplete(GameDifficulty.IsEasyMode, milliseconds);
-        }
-#endif
         OnLevelCompleted?.Invoke(currentLevelIndex);
         currentLevelIndex = (currentLevelIndex + 1) % levels.Length;
         LoadLevelByIndex(currentLevelIndex, startBlack);
@@ -91,4 +82,15 @@ public class LevelManager : MonoBehaviour
 
     public int CurrentLevelIndex => currentLevelIndex;
     public int LevelCount => levels != null ? levels.Length : 0;
+    public int FirstPlayableLevelIndex => firstPlayableLevelIndex;
+    public bool IsPlayableLevel(int index) => index >= firstPlayableLevelIndex;
+    public bool IsLastPlayableLevel(int index) => levels != null && index == levels.Length - 1;
+
+    public GameOfLifeLevelPreset GetLevelAt(int index)
+    {
+        if (levels == null || index < 0 || index >= levels.Length) return null;
+        return levels[index];
+    }
+
+    public GameOfLifeLevelPreset CurrentLevel => GetLevelAt(currentLevelIndex);
 }

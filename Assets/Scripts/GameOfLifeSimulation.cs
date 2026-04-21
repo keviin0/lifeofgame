@@ -41,6 +41,10 @@ public class GameOfLifeSimulation : MonoBehaviour
     [Tooltip("After picking an easy/hard coin, load the next level in LevelManager.")]
     [SerializeField] private bool difficultyCoinsLoadNextLevel = true;
 
+    [Header("Transitions")]
+    [Tooltip("Optional intermission shown between levels. If set, the player must click to continue after the fade to black.")]
+    [SerializeField] private LevelIntermission levelIntermission;
+
     // State
     private float cellSize = 0.5f;
     private int _width;
@@ -550,9 +554,17 @@ public class GameOfLifeSimulation : MonoBehaviour
             }
         }
 
-        // Move to the next level, preserving that level's preset data.
         if (_levelManager == null)
             _levelManager = FindFirstObjectByType<LevelManager>();
+
+        if (levelIntermission != null && _levelManager != null && _levelManager.IsPlayableLevel(_levelManager.CurrentLevelIndex))
+        {
+            int completedLevelNumber = _levelManager.CurrentLevelIndex - _levelManager.FirstPlayableLevelIndex + 1;
+            bool isFinalLevel = _levelManager.IsLastPlayableLevel(_levelManager.CurrentLevelIndex);
+            var completedPreset = _levelManager.CurrentLevel;
+            string leaderboardKey = completedPreset != null ? completedPreset.LeaderboardKey : null;
+            yield return levelIntermission.ShowAndWaitForClick(completedLevelNumber, leaderboardKey, isFinalLevel);
+        }
 
         if (_levelManager != null)
         {
