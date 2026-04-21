@@ -43,6 +43,7 @@ public class CollectibleCell : MonoBehaviour
         }
 
         _collected = true;
+        AudioManager.Instance.PlayCollectSound();
 
         if (simulation != null)
         {

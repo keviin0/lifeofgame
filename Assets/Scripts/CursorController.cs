@@ -133,6 +133,7 @@ public class CursorController : MonoBehaviour
 
     private void TryHitLiveCell(Vector2 hitWorldPosition)
     {
+        AudioManager.Instance.PlayHitSound();
         if (_livesRemaining > 1 && !_inEasyHitRecovery)
         {
             _livesRemaining--;

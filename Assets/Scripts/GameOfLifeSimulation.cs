@@ -52,6 +52,7 @@ public class GameOfLifeSimulation : MonoBehaviour
     private bool[,] _current;
     private bool[,] _next;
     private float _stepTimer;
+    private float _stepCount;
     private GameOfLifeCellView[,] _cells;
     private System.Collections.Generic.List<GameObject> _spawnedCollectibles = new System.Collections.Generic.List<GameObject>();
     private System.Collections.Generic.List<GameObject> _spawnedDifficultyCoins = new System.Collections.Generic.List<GameObject>();
@@ -111,6 +112,7 @@ public class GameOfLifeSimulation : MonoBehaviour
         if (!_initialized) return;
         _running = true;
         _stepTimer = stepInterval;
+        _stepCount = 0;
         OnSimulationStarted?.Invoke();
     }
 
@@ -271,6 +273,25 @@ public class GameOfLifeSimulation : MonoBehaviour
         _stepTimer -= Time.deltaTime;
         if (_stepTimer <= 0f)
         {
+            if (_stepCount % 4 == 0)
+            {
+                AudioManager.Instance.PlayHighSound();
+            }
+            else
+            {
+                if (stepInterval < 0.08f)
+                {
+                    if (_stepCount % 2 != 0)
+                    {
+                        AudioManager.Instance.PlayLowSound();
+                    }
+                }
+                else
+                {
+                    AudioManager.Instance.PlayLowSound();
+                }
+            }
+            _stepCount++;
             _stepTimer += stepInterval;
             StepSimulation();
         }
