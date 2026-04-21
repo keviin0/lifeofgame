@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Kevin's Scene.unity
     guid: 4e457ecedc94f426a8e94ff65e0f3353
+  - enabled: 1
+    path: Assets/Scenes/LevelEditorScene.unity
+    guid: 1656a8d5be7b44a4bb7508ff44c4597f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
