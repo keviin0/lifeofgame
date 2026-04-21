@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
         {
             { "debug", true }
         });
+        var parameters = Wavedash.SDK.GetLaunchParams();
     }
 
     private void Update()

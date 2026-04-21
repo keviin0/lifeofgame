@@ -1386,7 +1386,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: -1200, y: 0}
+  m_SizeDelta: {x: -1100, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1260867608
 MonoBehaviour:
@@ -1635,10 +1635,14 @@ MonoBehaviour:
   titleText: {fileID: 1723242085}
   entriesContainer: {fileID: 1116692132}
   itemPrefab: {fileID: 8151534021955356794, guid: 34d2aedce8e0dc64cb7e0700dd0a69fa, type: 3}
+  spacerPrefab: {fileID: 3937243415607741764, guid: 8bf16067540f04a8faa7e361076fb7fd, type: 3}
   titleFormat: '{0}'
   defaultColor: {r: 1, g: 1, b: 1, a: 1}
   currentPlayerColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   topCount: 10
+  truncatedTopCount: 7
+  aroundAhead: 5
+  aroundBehind: 5
 --- !u!1 &1527537115
 GameObject:
   m_ObjectHideFlags: 0
@@ -2816,6 +2820,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LevelIntermission
   canvasRoot: {fileID: 1802987800}
   leaderboardView: {fileID: 1506057240}
+  runTimer: {fileID: 1296984454}
   minDisplaySeconds: 0.25
 --- !u!1 &1803707861
 GameObject:

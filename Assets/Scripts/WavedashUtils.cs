@@ -100,29 +100,58 @@ public static class WavedashUtils
     private static string GetLevelLeaderboardName(bool isEasyMode, string leaderboardKey) =>
         $"{(isEasyMode ? "easy" : "hard")}_level_{leaderboardKey}_completion_times";
 
-    public static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
-        GetTotalLeaderboardData(bool isEasyMode, int limit) =>
-        GetLeaderboardDataByName(GetTotalLeaderboardName(isEasyMode), limit);
+    public struct LeaderboardData
+    {
+        public List<Dictionary<string, object>> Top;
+        public List<Dictionary<string, object>> Around;
+        public Dictionary<string, object> Me;
+        public string MyUserId;
+    }
 
-    public static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
-        GetLevelLeaderboardData(bool isEasyMode, string leaderboardKey, int limit) =>
-        GetLeaderboardDataByName(GetLevelLeaderboardName(isEasyMode, leaderboardKey), limit);
+    public static Task<LeaderboardData> GetTotalLeaderboardFullData(
+        bool isEasyMode, int topLimit, int aroundAhead, int aroundBehind) =>
+        GetFullByName(GetTotalLeaderboardName(isEasyMode), topLimit, aroundAhead, aroundBehind);
 
-    private async static Task<(List<Dictionary<string, object>> topEntries, Dictionary<string, object> myEntry)>
-        GetLeaderboardDataByName(string leaderboardName, int limit)
+    public static Task<LeaderboardData> GetLevelLeaderboardFullData(
+        bool isEasyMode, string leaderboardKey, int topLimit, int aroundAhead, int aroundBehind) =>
+        GetFullByName(GetLevelLeaderboardName(isEasyMode, leaderboardKey), topLimit, aroundAhead, aroundBehind);
+
+    private async static Task<LeaderboardData> GetFullByName(
+        string leaderboardName, int topLimit, int aroundAhead, int aroundBehind)
     {
         var leaderboard = await Wavedash.SDK.GetLeaderboard(leaderboardName);
-        if (leaderboard == null) return (null, null);
+        if (leaderboard == null) return default;
 
         var leaderboardId = leaderboard["id"].ToString();
 
-        var topTask = Wavedash.SDK.ListLeaderboardEntries(leaderboardId, 0, limit);
-        var mineTask = Wavedash.SDK.GetMyLeaderboardEntries(leaderboardId);
-        await Task.WhenAll(topTask, mineTask);
+        var topTask = Wavedash.SDK.ListLeaderboardEntries(leaderboardId, 0, topLimit);
+        var aroundTask = Wavedash.SDK.ListLeaderboardEntriesAroundUser(leaderboardId, aroundAhead, aroundBehind);
+        await Task.WhenAll(topTask, aroundTask);
 
-        var mine = mineTask.Result;
-        var myEntry = (mine != null && mine.Count > 0) ? mine[0] : null;
-        return (topTask.Result, myEntry);
+        var top = topTask.Result;
+        var around = aroundTask.Result;
+        string myUserId = Wavedash.SDK.GetUserId();
+        Dictionary<string, object> me = FindByUserId(around, myUserId) ?? FindByUserId(top, myUserId);
+
+        return new LeaderboardData
+        {
+            Top = top,
+            Around = around,
+            Me = me,
+            MyUserId = myUserId
+        };
+    }
+
+    private static Dictionary<string, object> FindByUserId(List<Dictionary<string, object>> list, string userId)
+    {
+        if (list == null || string.IsNullOrEmpty(userId)) return null;
+        foreach (var e in list)
+        {
+            if (e == null) continue;
+            if (e.TryGetValue("userId", out var v) && v?.ToString() == userId)
+                return e;
+        }
+        return null;
     }
 }
 #endif
