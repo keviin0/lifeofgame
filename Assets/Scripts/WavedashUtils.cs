@@ -37,7 +37,7 @@ public static class WavedashUtils
         var leaderboard = await Wavedash.SDK.GetOrCreateLeaderboard(
             leaderboardName,
             WavedashConstants.LeaderboardSortMethod.ASCENDING,
-            WavedashConstants.LeaderboardDisplayType.TIME_SECONDS
+            WavedashConstants.LeaderboardDisplayType.TIME_MILLISECONDS
         );
 
         if (leaderboard == null) return;

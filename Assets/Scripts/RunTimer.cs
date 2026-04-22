@@ -77,9 +77,6 @@ public class RunTimer : MonoBehaviour
 
         int runIndex = levelIndex - levelManager.FirstPlayableLevelIndex;
 
-        if (runIndex == 0)
-            perLevel.Clear();
-
         while (perLevel.Count <= runIndex)
             perLevel.Add(0f);
 
