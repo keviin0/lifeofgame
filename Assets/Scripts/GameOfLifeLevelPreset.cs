@@ -14,13 +14,24 @@ public class GameOfLifeLevelPreset : ScriptableObject
     [SerializeField] private string leaderboardKey;
 
     /// <summary>
+    /// When true, <see cref="LeaderboardKey"/> returns the empty string, which
+    /// callers (RunTimer, LeaderboardView, ...) treat as "this level has no
+    /// leaderboard". Used by ephemeral runtime presets such as launch-param
+    /// or editor-test levels so they don't accidentally pollute leaderboards
+    /// via the asset-name fallback. Not serialized.
+    /// </summary>
+    [NonSerialized] public bool suppressLeaderboard;
+
+    /// <summary>
     /// Stable key used to build this level's leaderboard name.
-    /// Falls back to a sanitized asset name if <c>leaderboardKey</c> is not set.
+    /// Falls back to a sanitized asset name if <c>leaderboardKey</c> is not set,
+    /// or returns empty when <see cref="suppressLeaderboard"/> is true.
     /// </summary>
     public string LeaderboardKey
     {
         get
         {
+            if (suppressLeaderboard) return string.Empty;
             if (!string.IsNullOrWhiteSpace(leaderboardKey)) return leaderboardKey.Trim();
             return SanitizeKey(name);
         }
@@ -59,6 +70,9 @@ public class GameOfLifeLevelPreset : ScriptableObject
 
     [Tooltip("Main menu: hard-mode coin (1 life). Not part of the Life simulation grid. Not included in URL/Base64 encoding.")]
     public List<Vector2Int> hardModeCoinCells = new List<Vector2Int>();
+
+    [Tooltip("Main menu: level-editor coin (opens the Level Editor scene). Not part of the Life simulation grid. Not included in URL/Base64 encoding.")]
+    public List<Vector2Int> levelEditorCoinCells = new List<Vector2Int>();
 
     /// <summary>
     /// Optional: set initial state from a simple pattern string.
@@ -219,6 +233,7 @@ public class GameOfLifeLevelPreset : ScriptableObject
         cursorStartCells.Clear();
         easyModeCoinCells.Clear();
         hardModeCoinCells.Clear();
+        levelEditorCoinCells.Clear();
 
         int cellIndex = 0;
         for (int row = 0; row < height; row++)
@@ -309,5 +324,10 @@ public class GameOfLifeLevelPreset : ScriptableObject
     public IReadOnlyList<Vector2Int> GetHardModeCoinCells()
     {
         return hardModeCoinCells;
+    }
+
+    public IReadOnlyList<Vector2Int> GetLevelEditorCoinCells()
+    {
+        return levelEditorCoinCells;
     }
 }

@@ -14,6 +14,8 @@ public class TimerView : MonoBehaviour
     [SerializeField] private Transform levelTimesContainer;
     [SerializeField] private LevelTimeItemView levelTimeItemPrefab;
     [SerializeField] private string levelNameFormat = "LEVEL {0}";
+    [Tooltip("Label used for the (single) timer row when the active run came from a launch-param level.")]
+    [SerializeField] private string launchParamLevelName = "CUSTOM";
 
     [Header("Total Time")]
     [SerializeField] private TextMeshProUGUI totalTimeText;
@@ -32,8 +34,14 @@ public class TimerView : MonoBehaviour
         var times = timer.PerLevelTimes;
         SyncItemCount(times.Count);
 
+        bool isLaunchParamRun = LaunchParamLevelSession.IsActive;
         for (int i = 0; i < items.Count; i++)
-            items[i].Bind(string.Format(levelNameFormat, i + 1), FormatTime(times[i]));
+        {
+            string label = isLaunchParamRun
+                ? launchParamLevelName
+                : string.Format(levelNameFormat, i + 1);
+            items[i].Bind(label, FormatTime(times[i]));
+        }
 
         if (totalTimeText != null)
             totalTimeText.text = FormatTime(timer.TotalTime);

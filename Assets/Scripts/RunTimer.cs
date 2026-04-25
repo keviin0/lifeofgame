@@ -113,6 +113,11 @@ public class RunTimer : MonoBehaviour
         int levelMs = (int)(perLevel[currentRunIndex] * 1000);
         WavedashUtils.LevelComplete(GameDifficulty.IsEasyMode, preset.LeaderboardKey, levelMs);
 
+        // Ephemeral runs (launch-param, editor test) never count toward the
+        // global completion-time leaderboard, even if the level happens to be
+        // the last index in the configured list.
+        if (preset.suppressLeaderboard) return;
+
         bool isLastPlayable = levelManager.CurrentLevelIndex == levelManager.LevelCount - 1;
         if (isLastPlayable)
         {

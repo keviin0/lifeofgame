@@ -43,7 +43,13 @@ public class LeaderboardView : MonoBehaviour
         currentLeaderboardKey = leaderboardKey;
         currentIsEasyMode = isEasyMode;
         this.currentTimeMs = currentTimeMs;
-        SetTitle($"Level {displayLevelNumber} - {ModeLabel(isEasyMode)}");
+        // No leaderboard key (e.g. a level loaded from a launch param) means
+        // there's no leaderboard to label, so blank the title rather than
+        // showing a misleading "Level N - Mode" header. Layout is preserved
+        // because the TextMeshPro is left active.
+        SetTitle(string.IsNullOrWhiteSpace(leaderboardKey)
+            ? string.Empty
+            : $"Level {displayLevelNumber} - {ModeLabel(isEasyMode)}");
         Refresh();
     }
 
@@ -91,8 +97,10 @@ public class LeaderboardView : MonoBehaviour
 
     private void SetTitle(string context)
     {
-        if (titleText != null)
-            titleText.text = string.Format(titleFormat, context);
+        if (titleText == null) return;
+        titleText.text = string.IsNullOrEmpty(context)
+            ? string.Empty
+            : string.Format(titleFormat, context);
     }
 
     private static string ModeLabel(bool isEasyMode) => isEasyMode ? "Easy" : "Hard";

@@ -16,7 +16,8 @@ public class GameOfLifeLevelPresetEditor : Editor
         CollectibleCell,
         CursorStart,
         EasyModeCoin,
-        HardModeCoin
+        HardModeCoin,
+        LevelEditorCoin
     }
 
     static CellPaintMode _paintMode = CellPaintMode.LiveCell;
@@ -34,6 +35,7 @@ public class GameOfLifeLevelPresetEditor : Editor
         SerializedProperty cursorStartListProp = so.FindProperty("cursorStartCells");
         SerializedProperty easyCoinListProp = so.FindProperty("easyModeCoinCells");
         SerializedProperty hardCoinListProp = so.FindProperty("hardModeCoinCells");
+        SerializedProperty editorCoinListProp = so.FindProperty("levelEditorCoinCells");
 
         if (leaderboardKeyProp != null)
         {
@@ -55,6 +57,7 @@ public class GameOfLifeLevelPresetEditor : Editor
             cursorStartListProp.arraySize = 0;
             easyCoinListProp.arraySize = 0;
             hardCoinListProp.arraySize = 0;
+            editorCoinListProp.arraySize = 0;
             _lastPaintX = _lastPaintY = -1;
         }
 
@@ -66,6 +69,7 @@ public class GameOfLifeLevelPresetEditor : Editor
         bool[,] cursorStarts = BuildGridFromList(cursorStartListProp, w, h);
         bool[,] easyCoins = BuildGridFromList(easyCoinListProp, w, h);
         bool[,] hardCoins = BuildGridFromList(hardCoinListProp, w, h);
+        bool[,] editorCoins = BuildGridFromList(editorCoinListProp, w, h);
 
         float totalW = w * CellPixels;
         float totalH = h * CellPixels;
@@ -78,7 +82,7 @@ public class GameOfLifeLevelPresetEditor : Editor
 
         EditorGUILayout.Space(8);
         _paintMode = (CellPaintMode)EditorGUILayout.EnumPopup("Paint Mode", _paintMode);
-        EditorGUILayout.LabelField("live=white, collectible=yellow, cursor=cyan, easy=green, hard=red. (Easy/hard not in Base64.)", EditorStyles.miniLabel);
+        EditorGUILayout.LabelField("live=white, collectible=yellow, cursor=cyan, easy=green, hard=red, editor=orange. (Coins not in Base64.)", EditorStyles.miniLabel);
 
         float gridPixelW = w * cellSize;
         float gridPixelH = h * cellSize;
@@ -111,6 +115,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                 bool isCursorStart = cursorStarts[x, y];
                 bool isEasyCoin = easyCoins[x, y];
                 bool isHardCoin = hardCoins[x, y];
+                bool isEditorCoin = editorCoins[x, y];
 
                 Color cellColor = new Color(0.22f, 0.22f, 0.22f);
                 if (isAlive)
@@ -121,6 +126,8 @@ public class GameOfLifeLevelPresetEditor : Editor
                     cellColor = new Color(0.25f, 0.95f, 0.35f);
                 else if (isHardCoin)
                     cellColor = new Color(0.95f, 0.3f, 0.3f);
+                else if (isEditorCoin)
+                    cellColor = new Color(1.0f, 0.55f, 0.1f);
                 else if (isCursorStart)
                     cellColor = Color.cyan;
 
@@ -134,7 +141,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                 if (e.type == EventType.MouseDown && e.button == 0 && cellRect.Contains(localMouse))
                 {
                     bool newState = !_dragPaintAlive;
-                    SetForMode(liveListProp, collectibleListProp, cursorStartListProp, easyCoinListProp, hardCoinListProp, x, y, _paintMode, newState);
+                    SetForMode(liveListProp, collectibleListProp, cursorStartListProp, easyCoinListProp, hardCoinListProp, editorCoinListProp, x, y, _paintMode, newState);
                     _dragPaintAlive = newState;
                     _lastPaintX = x;
                     _lastPaintY = y;
@@ -152,11 +159,12 @@ public class GameOfLifeLevelPresetEditor : Editor
                         _paintMode == CellPaintMode.CollectibleCell ? isCollectible :
                         _paintMode == CellPaintMode.CursorStart ? isCursorStart :
                         _paintMode == CellPaintMode.EasyModeCoin ? isEasyCoin :
-                        isHardCoin;
+                        _paintMode == CellPaintMode.HardModeCoin ? isHardCoin :
+                        isEditorCoin;
 
                     if (currentState != _dragPaintAlive)
                     {
-                        SetForMode(liveListProp, collectibleListProp, cursorStartListProp, easyCoinListProp, hardCoinListProp, x, y, _paintMode, _dragPaintAlive);
+                        SetForMode(liveListProp, collectibleListProp, cursorStartListProp, easyCoinListProp, hardCoinListProp, editorCoinListProp, x, y, _paintMode, _dragPaintAlive);
                         e.Use();
                         GUI.changed = true;
                         Repaint();
@@ -193,6 +201,7 @@ public class GameOfLifeLevelPresetEditor : Editor
         SerializedProperty cursorStartList,
         SerializedProperty easyCoinList,
         SerializedProperty hardCoinList,
+        SerializedProperty editorCoinList,
         int x,
         int y,
         CellPaintMode mode,
@@ -208,6 +217,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                     RemoveFromList(cursorStartList, x, y);
                     RemoveFromList(easyCoinList, x, y);
                     RemoveFromList(hardCoinList, x, y);
+                    RemoveFromList(editorCoinList, x, y);
                 }
                 else
                     RemoveFromList(liveList, x, y);
@@ -221,6 +231,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                     RemoveFromList(cursorStartList, x, y);
                     RemoveFromList(easyCoinList, x, y);
                     RemoveFromList(hardCoinList, x, y);
+                    RemoveFromList(editorCoinList, x, y);
                 }
                 else
                     RemoveFromList(collectibleList, x, y);
@@ -235,6 +246,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                     RemoveFromList(collectibleList, x, y);
                     RemoveFromList(easyCoinList, x, y);
                     RemoveFromList(hardCoinList, x, y);
+                    RemoveFromList(editorCoinList, x, y);
                 }
                 else
                     RemoveFromList(cursorStartList, x, y);
@@ -245,6 +257,7 @@ public class GameOfLifeLevelPresetEditor : Editor
                 {
                     AddToList(easyCoinList, x, y);
                     RemoveFromList(hardCoinList, x, y);
+                    RemoveFromList(editorCoinList, x, y);
                     RemoveFromList(liveList, x, y);
                     RemoveFromList(collectibleList, x, y);
                     RemoveFromList(cursorStartList, x, y);
@@ -258,12 +271,27 @@ public class GameOfLifeLevelPresetEditor : Editor
                 {
                     AddToList(hardCoinList, x, y);
                     RemoveFromList(easyCoinList, x, y);
+                    RemoveFromList(editorCoinList, x, y);
                     RemoveFromList(liveList, x, y);
                     RemoveFromList(collectibleList, x, y);
                     RemoveFromList(cursorStartList, x, y);
                 }
                 else
                     RemoveFromList(hardCoinList, x, y);
+                break;
+
+            case CellPaintMode.LevelEditorCoin:
+                if (paintOn)
+                {
+                    AddToList(editorCoinList, x, y);
+                    RemoveFromList(easyCoinList, x, y);
+                    RemoveFromList(hardCoinList, x, y);
+                    RemoveFromList(liveList, x, y);
+                    RemoveFromList(collectibleList, x, y);
+                    RemoveFromList(cursorStartList, x, y);
+                }
+                else
+                    RemoveFromList(editorCoinList, x, y);
                 break;
         }
     }

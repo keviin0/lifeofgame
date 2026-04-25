@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Holds the list of level presets and drives which level the GameOfLifeSimulation runs.
@@ -31,6 +32,37 @@ public class LevelManager : MonoBehaviour
         if (simulation == null)
             simulation = FindFirstObjectByType<GameOfLifeSimulation>();
 
+        // Level-editor test run: skip the configured level list entirely and
+        // load the user's in-progress level. Completing the level (or pressing
+        // ESC, handled by GameManager) sends the player back to the editor.
+        if (LevelEditorTestSession.TryConsumePreset(out var testPreset))
+        {
+            if (simulation != null)
+                simulation.LoadLevel(testPreset);
+            else
+                Debug.LogWarning("LevelManager: test session active but no GameOfLifeSimulation found in scene.");
+            OnLevelLoaded?.Invoke(currentLevelIndex);
+            return;
+        }
+
+        // Any non-test load clears stale test state.
+        LevelEditorTestSession.End();
+
+        // Launch-param level: a single, timed run of a custom level decoded
+        // from the URL. Loaded at the first playable index so the run timer
+        // and level intermission both fire normally; LoadNextLevel returns
+        // the player to the main menu.
+        if (LaunchParamLevelSession.IsActive && LaunchParamLevelSession.Preset != null)
+        {
+            currentLevelIndex = firstPlayableLevelIndex;
+            if (simulation != null)
+                simulation.LoadLevel(LaunchParamLevelSession.Preset);
+            else
+                Debug.LogWarning("LevelManager: launch-param level active but no GameOfLifeSimulation found in scene.");
+            OnLevelLoaded?.Invoke(currentLevelIndex);
+            return;
+        }
+
         if (levels != null && levels.Length > 0)
         {
             currentLevelIndex = Mathf.Clamp(currentLevelIndex, 0, levels.Length - 1);
@@ -49,6 +81,13 @@ public class LevelManager : MonoBehaviour
     /// </summary>
     public void LoadLevelByIndex(int index, bool startBlack = false)
     {
+        // During a test/launch-param run, the configured `levels` list isn't
+        // what's playing, so reloading by index (e.g. from the death routine)
+        // would warp the player into an unrelated real level. Exit the session
+        // back to its origin instead.
+        if (LevelEditorTestSession.ReturnToEditor()) return;
+        if (LaunchParamLevelSession.ReturnToMainMenu()) return;
+
         if (levels == null || index < 0 || index >= levels.Length) return;
         currentLevelIndex = index;
         if (simulation != null && levels[index] != null)
@@ -63,6 +102,16 @@ public class LevelManager : MonoBehaviour
     /// </summary>
     public void LoadNextLevel(bool startBlack = false)
     {
+        // In a test run the "next level" is the editor we came from.
+        // The level-complete transition has already played in the simulation,
+        // so we just hop scenes here.
+        if (LevelEditorTestSession.ReturnToEditor())
+            return;
+
+        // Launch-param run: same idea, but the "next level" is the main menu.
+        if (LaunchParamLevelSession.ReturnToMainMenu())
+            return;
+
         if (levels == null || levels.Length == 0) return;
         OnLevelCompleted?.Invoke(currentLevelIndex);
         currentLevelIndex = (currentLevelIndex + 1) % levels.Length;
@@ -92,5 +141,13 @@ public class LevelManager : MonoBehaviour
         return levels[index];
     }
 
-    public GameOfLifeLevelPreset CurrentLevel => GetLevelAt(currentLevelIndex);
+    public GameOfLifeLevelPreset CurrentLevel
+    {
+        get
+        {
+            if (LaunchParamLevelSession.IsActive && LaunchParamLevelSession.Preset != null)
+                return LaunchParamLevelSession.Preset;
+            return GetLevelAt(currentLevelIndex);
+        }
+    }
 }

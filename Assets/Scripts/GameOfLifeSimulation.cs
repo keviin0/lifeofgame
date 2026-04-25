@@ -516,6 +516,13 @@ public class GameOfLifeSimulation : MonoBehaviour
             foreach (var c in hard)
                 SpawnOne(c, DifficultySelectCell.DifficultyChoice.Hard, new Color(1.0f, 0.85f, 0.2f));
         }
+
+        var editor = preset.GetLevelEditorCoinCells();
+        if (editor != null)
+        {
+            foreach (var c in editor)
+                SpawnOne(c, DifficultySelectCell.DifficultyChoice.LevelEditor, new Color(1.0f, 0.85f, 0.2f));
+        }
     }
 
     private void SetOverlayPickupsVisible(bool visible)

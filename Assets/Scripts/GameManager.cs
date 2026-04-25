@@ -20,6 +20,12 @@ public class GameManager : MonoBehaviour
             { "debug", true }
         });
         var parameters = Wavedash.SDK.GetLaunchParams();
+        if (parameters != null && parameters.TryGetValue("level", out var levelObj) && levelObj != null)
+        {
+            // Stage the launch-param level so LevelManager picks it up on Start
+            // and runs it as a single timed level instead of the normal flow.
+            LaunchParamLevelSession.TryStageFromBase64(levelObj.ToString());
+        }
     }
 
     private void Update()
@@ -32,7 +38,10 @@ public class GameManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            QuitGame();
+            // During a level-editor test run, ESC bails back to the editor
+            // instead of quitting play mode.
+            if (LevelEditorTestSession.ReturnToEditor())
+                return;
         }
     }
 
