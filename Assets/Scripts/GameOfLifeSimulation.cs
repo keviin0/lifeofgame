@@ -356,6 +356,8 @@ public class GameOfLifeSimulation : MonoBehaviour
         _stepTimer = stepInterval;
         _initialized = true;
         _running = false;
+
+        AudioManager.Instance.ResetCollectionPitch();
     }
 
     private void ClearGrid()
